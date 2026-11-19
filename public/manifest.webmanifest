@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "The Discovery Exchange",
+  "short_name": "TDEX",
+  "description": "The National Discovery Awards & Discovery Exchange Parents Alliance (50/25/25 Marketplace, 70/30 Property Silos, and Public Schools Discovery Studio).",
+  "theme_color": "#081d38",
+  "background_color": "#081d38",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

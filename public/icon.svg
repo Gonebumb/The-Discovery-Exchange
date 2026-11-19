@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#081d38"/>
+  <rect x="28" y="28" width="456" height="456" rx="76" fill="none" stroke="#dfa62a" stroke-width="14"/>
+  <!-- Architectural Roof / Roofline -->
+  <polygon points="256,98 112,208 400,208" fill="none" stroke="#dfa62a" stroke-width="22" stroke-linejoin="round"/>
+  <!-- Three Equity Bricks (50 / 25 / 25 Foundation) -->
+  <rect x="132" y="228" width="114" height="58" rx="8" fill="#dfa62a"/>
+  <rect x="266" y="228" width="114" height="58" rx="8" fill="#dfa62a"/>
+  <rect x="132" y="302" width="248" height="54" rx="8" fill="#ffffff"/>
+  <text x="256" y="339" text-anchor="middle" font-family="Georgia, serif" font-weight="800" font-size="36" fill="#081d38" letter-spacing="4">TDEX</text>
+  <text x="256" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="22" fill="#dfa62a" letter-spacing="3">1 OWNER = 1 VOTE</text>
+</svg>

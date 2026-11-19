@@ -1,0 +1,407 @@
+@import "tailwindcss";
+@source "../public/live-dist/assets/index-BUOPYDOV.js";
+
+#clean-page-nda h1,
+#clean-page-nda h2,
+#clean-page-nda h3,
+#clean-page-nda h4,
+#clean-page-nda .font-serif,
+#clean-page-constitution h1,
+#clean-page-constitution h2,
+#clean-page-constitution h3,
+#clean-page-constitution h4,
+#clean-page-constitution .font-serif,
+#clean-page-concierge_qa h1,
+#clean-page-concierge_qa h2,
+#clean-page-concierge_qa h3,
+#clean-page-concierge_qa h4,
+#clean-page-concierge_qa .font-serif,
+#clean-page-member_center h1,
+#clean-page-member_center h2,
+#clean-page-member_center h3,
+#clean-page-member_center h4,
+#clean-page-member_center .font-serif,
+#clean-page-mom_pop_board h1,
+#clean-page-mom_pop_board h2,
+#clean-page-mom_pop_board h3,
+#clean-page-mom_pop_board h4,
+#clean-page-mom_pop_board .font-serif,
+#clean-page-arbitration_board h1,
+#clean-page-arbitration_board h2,
+#clean-page-arbitration_board h3,
+#clean-page-arbitration_board h4,
+#clean-page-arbitration_board .font-serif,
+#clean-page-dexpa h1,
+#clean-page-dexpa h2,
+#clean-page-dexpa h3,
+#clean-page-dexpa h4,
+#clean-page-dexpa .font-serif,
+#clean-page-awards h1,
+#clean-page-awards h2,
+#clean-page-awards h3,
+#clean-page-awards h4,
+#clean-page-awards .font-serif,
+#clean-page-school_districts h1,
+#clean-page-school_districts h2,
+#clean-page-school_districts h3,
+#clean-page-school_districts h4,
+#clean-page-school_districts .font-serif,
+#clean-page-reward_program h1,
+#clean-page-reward_program h2,
+#clean-page-reward_program h3,
+#clean-page-reward_program h4,
+#clean-page-reward_program .font-serif,
+#clean-page-national_reward h1,
+#clean-page-national_reward h2,
+#clean-page-national_reward h3,
+#clean-page-national_reward h4,
+#clean-page-national_reward .font-serif,
+#clean-page-labs h1,
+#clean-page-labs h2,
+#clean-page-labs h3,
+#clean-page-labs h4,
+#clean-page-labs .font-serif,
+#clean-page-marketplace h1,
+#clean-page-marketplace h2,
+#clean-page-marketplace h3,
+#clean-page-marketplace h4,
+#clean-page-marketplace .font-serif,
+#clean-page-how_tdex_works h1,
+#clean-page-how_tdex_works h2,
+#clean-page-how_tdex_works h3,
+#clean-page-how_tdex_works h4,
+#clean-page-how_tdex_works .font-serif,
+#clean-page-coming_up_20 h1,
+#clean-page-coming_up_20 h2,
+#clean-page-coming_up_20 h3,
+#clean-page-coming_up_20 h4,
+#clean-page-coming_up_20 .font-serif,
+#clean-page-coming_up_21 h1,
+#clean-page-coming_up_21 h2,
+#clean-page-coming_up_21 h3,
+#clean-page-coming_up_21 h4,
+#clean-page-coming_up_21 .font-serif,
+#clean-page-brickcoin h1,
+#clean-page-brickcoin h2,
+#clean-page-brickcoin h3,
+#clean-page-brickcoin h4,
+#clean-page-brickcoin .font-serif,
+#clean-page-donate h1,
+#clean-page-donate h2,
+#clean-page-donate h3,
+#clean-page-donate h4,
+#clean-page-donate .font-serif,
+#clean-page-wtf_chat h1,
+#clean-page-wtf_chat h2,
+#clean-page-wtf_chat h3,
+#clean-page-wtf_chat h4,
+#clean-page-wtf_chat .font-serif,
+#clean-page-heaven_hell h1,
+#clean-page-heaven_hell h2,
+#clean-page-heaven_hell h3,
+#clean-page-heaven_hell h4,
+#clean-page-heaven_hell .font-serif,
+#clean-page-chat_room h1,
+#clean-page-chat_room h2,
+#clean-page-chat_room h3,
+#clean-page-chat_room h4,
+#clean-page-chat_room .font-serif,
+#clean-page-open_chat h1,
+#clean-page-open_chat h2,
+#clean-page-open_chat h3,
+#clean-page-open_chat h4,
+#clean-page-open_chat .font-serif,
+#clean-page-coming_up_16 h1,
+#clean-page-coming_up_16 h2,
+#clean-page-coming_up_16 h3,
+#clean-page-coming_up_16 h4,
+#clean-page-coming_up_16 .font-serif,
+#clean-page-studio h1,
+#clean-page-studio h2,
+#clean-page-studio h3,
+#clean-page-studio h4,
+#clean-page-studio .font-serif,
+#clean-page-coming_up_15 h1,
+#clean-page-coming_up_15 h2,
+#clean-page-coming_up_15 h3,
+#clean-page-coming_up_15 h4,
+#clean-page-coming_up_15 .font-serif,
+#clean-page-coming_up_17 h1,
+#clean-page-coming_up_17 h2,
+#clean-page-coming_up_17 h3,
+#clean-page-coming_up_17 h4,
+#clean-page-coming_up_17 .font-serif,
+#clean-page-coming_up_19 h1,
+#clean-page-coming_up_19 h2,
+#clean-page-coming_up_19 h3,
+#clean-page-coming_up_19 h4,
+#clean-page-coming_up_19 .font-serif,
+#clean-page-columbo h1,
+#clean-page-columbo h2,
+#clean-page-columbo h3,
+#clean-page-columbo h4,
+#clean-page-columbo .font-serif,
+#clean-page-pipito h1,
+#clean-page-pipito h2,
+#clean-page-pipito h3,
+#clean-page-pipito h4,
+#clean-page-pipito .font-serif,
+#tdex-15-window-host h1,
+#tdex-15-window-host h2,
+#tdex-15-window-host h3,
+#tdex-15-window-host h4,
+#tdex-15-window-host .font-serif {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================================
+   RESOLUTION-AGNOSTIC LAYOUT LOCK-DOWN (320px Mobile -> 4K / Oversized Zoom)
+   ============================================================================ */
+html {
+  box-sizing: border-box;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+#root {
+  width: 100%;
+  overflow-x: clip;
+}
+
+/* Lock outer shell cleanly centered across desktop, ultrawide, and zoomed viewports */
+#root > div {
+  width: 100% !important;
+  max-width: min(1440px, 100vw) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  overflow-x: clip !important;
+}
+
+/* Lock top header rows cleanly centered and scaled across desktop, laptop, and zoomed viewports */
+#root header,
+#root header > div {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  #root .tdex-header-top-row {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(0.4rem, 1vw, 1.25rem);
+  }
+
+  #root .tdex-brand-crest {
+    height: clamp(22px, 2.3vw, 36px) !important;
+    width: auto !important;
+  }
+
+  #root .tdex-brand-title {
+    font-size: clamp(12.5px, 1.48vw, 22px) !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  #root .tdex-brand-subtitle {
+    font-size: clamp(9.5px, 0.92vw, 14px) !important;
+    white-space: nowrap !important;
+  }
+
+  #root .tdex-gov-nav {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.25rem, 1vw, 1.25rem) !important;
+    font-size: clamp(8.5px, 0.9vw, 13px) !important;
+    min-width: 0;
+  }
+
+  #root .tdex-gov-nav button,
+  #root .tdex-header-actions button {
+    white-space: nowrap !important;
+  }
+
+  #root .tdex-header-actions {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: clamp(0.35rem, 0.7vw, 0.75rem);
+    flex-shrink: 0;
+  }
+
+  #root .tdex-header-actions .tdex-login-btn {
+    padding: 0.375rem clamp(0.65rem, 1.2vw, 1.25rem) !important;
+    font-size: clamp(11px, 0.88vw, 14px) !important;
+  }
+
+  #root .tdex-program-nav {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1px, 0.25vw, 4px) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #root .tdex-program-nav button {
+    font-size: clamp(8.5px, 0.82vw, 12px) !important;
+    padding: 5px clamp(3px, 0.5vw, 10px) !important;
+    white-space: nowrap !important;
+  }
+
+  #root .tdex-sub-nav {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.35rem, 1.1vw, 1.25rem) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #root .tdex-sub-nav button {
+    font-size: clamp(9.5px, 0.84vw, 12px) !important;
+    padding: 4px clamp(5px, 0.65vw, 10px) !important;
+    white-space: nowrap !important;
+  }
+
+  #root .tdex-hero-manifesto-row {
+    display: flex;
+    flex-direction: row !important;
+    align-items: stretch !important;
+  }
+
+  #root .tdex-manifesto-copy {
+    font-size: clamp(10.8px, 0.94vw, 13.5px) !important;
+    line-height: 1.35 !important;
+  }
+
+  #root .tdex-hero-side-video {
+    width: clamp(185px, 18.5vw, 265px) !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  #root .tdex-header-top-row {
+    flex-wrap: wrap !important;
+    row-gap: 0.5rem;
+  }
+
+  #root .tdex-gov-nav {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap !important;
+    justify-content: center;
+    gap: 0.35rem 0.75rem;
+    padding-top: 0.25rem;
+  }
+
+  #root .tdex-header-actions {
+    order: 2;
+  }
+
+  #root .tdex-program-nav,
+  #root .tdex-sub-nav {
+    flex-wrap: wrap !important;
+    justify-content: center;
+  }
+}
+
+/* Lock sub-page portals cleanly inside shell with fluid padding */
+[id^="clean-page-"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: clip !important;
+  padding: clamp(1rem, 2.2vw, 2.25rem) clamp(0.75rem, 2vw, 1.5rem) !important;
+}
+
+#tdex-15-window-host {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Prevent CSS Grid and Flex children from blowing past container bounds */
+.grid > *,
+[class*="grid-cols-"] > *,
+.flex > * {
+  min-width: 0;
+}
+
+/* Media, 3Dmol canvases, SVGs, and iframes never overflow horizontally */
+img,
+video,
+svg,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Keep long hashes, ledger digests, and code snippets wrapped cleanly */
+code,
+pre {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Prevent double horizontal padding inside sub-page containers on zoomed/small screens */
+[id^="clean-page-"] > div[class*="max-w-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100% !important;
+}
+
+/* At <=640px CSS width (phones), allow nav/action buttons to wrap inside bounds */
+@media (max-width: 640px) {
+  #root header button,
+  #root main button,
+  [id^="clean-page-"] button {
+    white-space: normal !important;
+    text-align: center;
+    max-width: 100%;
+  }
+}
+
+/* Top non-custodial open-project notice bar */
+.tdex-prelaunch-banner {
+  width: 100%;
+  max-width: 100%;
+  background-color: #061529;
+  color: #ffffff;
+  border-bottom: 2px solid #dfa62a;
+  overflow-wrap: break-word;
+}
+

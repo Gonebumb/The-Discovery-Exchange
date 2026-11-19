@@ -1,0 +1,17 @@
+{
+  "appId": "com.thediscoveryexchange.app",
+  "appName": "The Discovery Exchange",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "url": "https://nationaldiscoveryawards.com",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "automatic"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

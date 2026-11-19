@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerUid) {
+      return isSignedIn() && request.auth.uid == ownerUid;
+    }
+
+    // 1. IMMUTABLE CONSTITUTIONAL ARCHIVE (Read-only public blueprint, zero client writes)
+    match /immutable_charter_archive/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 2. APPEND-ONLY PUBLIC LEDGER (Article 8.3: Never updated or deleted)
+    match /append_only_ledger/{eventId} {
+      allow read: if true;
+      allow create: if false; // Written exclusively by verified DILOS server backend
+      allow update, delete: if false;
+    }
+
+    // 3. ENCRYPTED PII VAULT (Article 8.4: Air-gapped from public & AI)
+    match /encrypted_pii_vault/{ownerUid} {
+      allow read, create, update: if isOwner(ownerUid);
+      allow delete: if false;
+    }
+
+    // 4. VERIFIED OWNERS PROFILE (Article 4.1: votingWeight locked to 1)
+    match /owners/{ownerUid} {
+      allow read: if isOwner(ownerUid);
+      allow create: if isOwner(ownerUid)
+        && request.resource.data.votingWeight == 1
+        && request.resource.data.isAdultVerified == true;
+      allow update: if isOwner(ownerUid)
+        && request.resource.data.votingWeight == resource.data.votingWeight
+        && request.resource.data.accumulationBalanceCents == resource.data.accumulationBalanceCents
+        && request.resource.data.dbcBalance == resource.data.dbcBalance;
+      allow delete: if false;
+    }
+
+    // 5. ISOLATED PROPERTY SILOS (Article 9.1: Publicly auditable silo books)
+    match /property_silos/{siloId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 6. ANONYMIZED NDA SUBMISSIONS (Article 13.2: Stripped of PII)
+    match /nda_submissions_blind/{trackingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

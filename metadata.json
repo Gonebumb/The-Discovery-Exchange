@@ -1,0 +1,6 @@
+{
+  "name": "The Discovery Exchange (TDEX)",
+  "description": "The National Discovery Prize and Discovery Exchange Parents Alliance portal, featuring 70/30 bank auction real estate investment, Discovery Brick Coin, and community marketplace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
