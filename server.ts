@@ -11,7 +11,25 @@ import {
   type PersistedOwnerAccount,
   type PersistedStudioSubmission,
   type PersistedTradeReceipt,
+  type PersistedVaultSession,
+  type VaultAccessScope,
+  type VaultFolderName,
+  type VaultRole,
 } from './src/server/dbStore.ts';
+import {
+  authenticateVaultPasscode,
+  canScopeAccessCategory,
+  createCourtAccessRequest,
+  executeGovernanceBoardHandover,
+  fileVaultRecord,
+  getActiveBoardCourtOrder,
+  initializeVaultSecurity,
+  recordMovement,
+  reviewCourtAccessRequest,
+  revokeCourtOrder,
+  rotateVaultPasscode,
+  verifyMovementChain,
+} from './src/server/vaultEngine.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,19 +43,23 @@ app.use(express.json({ limit: '2mb' }));
 // ============================================================================
 const CHARTER_VERSION = '10.0';
 const MAX_DBC_SUPPLY = 100_000_000;
-const PAYPAL_MERCHANT_EMAIL = process.env.PAYPAL_MERCHANT_EMAIL || 'DISABLED_PRELAUNCH';
-const PAYPAL_API_BASE =
-  process.env.PAYPAL_ENV === 'live'
-    ? 'https://api-m.paypal.com'
-    : 'https://api-m.sandbox.paypal.com';
+const IS_LIVE_PAYPAL_ENV = process.env.PAYPAL_ENV === 'live';
+const PAYPAL_API_BASE = IS_LIVE_PAYPAL_ENV
+  ? 'https://api-m.paypal.com'
+  : 'https://api-m.sandbox.paypal.com';
 
-// Hard-Hold Gate: Flips to false ONLY when Stripe Connect / PayPal Commerce & segregated escrow accounts are active
-const PRODUCTION_REAL_MONEY_HOLD = process.env.TDEX_LIVE_ESCROW_ENABLED !== 'true';
+// Hard-Hold Gate applies to LIVE real-money settlement until TDEX_LIVE_ESCROW_ENABLED === 'true'.
+// PayPal Sandbox testing stays enabled cleanly with zero real money movement.
+const PRODUCTION_REAL_MONEY_HOLD =
+  !IS_LIVE_PAYPAL_ENV || process.env.TDEX_LIVE_ESCROW_ENABLED !== 'true';
+const LIVE_PAYPAL_CHECKOUT_BLOCKED =
+  IS_LIVE_PAYPAL_ENV && process.env.TDEX_LIVE_ESCROW_ENABLED !== 'true';
 
 // ============================================================================
 // 2. ATOMIC PERSISTENT STORE & SEGREGATED VAULTS (ARTICLE 8 & 10)
 // ============================================================================
 const store = loadStore();
+initializeVaultSecurity(store);
 
 type OwnerAccount = PersistedOwnerAccount;
 type LedgerBlock = PersistedLedgerBlock;
@@ -92,6 +114,14 @@ function pipitoCheckConstitutionalGates(checks: {
   prizeCashVerifiedInBank?: boolean;
   accountQuarantined?: boolean;
 }): { cleared: boolean; reason?: string } {
+  if (store.vaultSecurityState.emergencyStopActive) {
+    return {
+      cleared: false,
+      reason: `PIPITO_HALT: Global Emergency Stop Active (${
+        store.vaultSecurityState.emergencyStopReason || 'Frozen by Governance/Court Order'
+      }).`,
+    };
+  }
   if (checks.accountQuarantined) {
     return { cleared: false, reason: 'PIPITO_HALT: Account under Global Quarantine (GQ).' };
   }
@@ -241,6 +271,9 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
   };
 
   store.ownersByEmail[normalizedEmail] = owner;
+  const totalOwners = Object.keys(store.ownersByEmail).length;
+  store.governanceState.verifiedOwnerCount = totalOwners;
+
   const token = crypto.randomBytes(32).toString('hex');
   store.sessions[token] = ownerUuid;
 
@@ -250,6 +283,29 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
     ownerUuid,
     sha256(`REG|${ownerUuid}|1`)
   );
+
+  recordMovement(store, {
+    actorId: ownerUuid,
+    actorRole: 'DILOS_SYSTEM',
+    action: 'OWNER_REGISTERED',
+    targetResource: `OWNER:${ownerUuid}`,
+    dilosStage: 'CONCIERGE',
+    summary: `Verified adult Owner registered from ${owner.stateCode} (PII isolated to Vault).`,
+  });
+
+  if (
+    totalOwners >= 1000 &&
+    !store.internalMovementLog.some((e) => e.action === 'FCU_CHARTER_THRESHOLD_REACHED')
+  ) {
+    recordMovement(store, {
+      actorId: 'DILOS_SECURITY_KERNEL',
+      actorRole: 'DILOS_SYSTEM',
+      action: 'FCU_CHARTER_THRESHOLD_REACHED',
+      targetResource: 'NCUA-FCU-CHARTER-ELIGIBLE',
+      dilosStage: 'PIPITO',
+      summary: `FCU_CHARTER_ELIGIBLE: Verified Owner count reached ${totalOwners} (>= 1,000). Eligible to file NCUA Federal Credit Union charter under Phase 2 transition.`,
+    });
+  }
 
   res.status(201).json({
     token,
@@ -369,8 +425,82 @@ async function getPayPalAccessToken(): Promise<string> {
 }
 
 function canUsePayPalRestApi(): boolean {
-  if (PRODUCTION_REAL_MONEY_HOLD) return false;
+  if (LIVE_PAYPAL_CHECKOUT_BLOCKED) return false;
   return Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
+}
+
+function buildPayPalMultipartyPurchaseUnits(params: {
+  orderTrackingId: string;
+  itemTitle: string;
+  sellerPayPalEmail: string;
+  sellerPropertyPayPalEmail: string;
+  buyerPropertyPayPalEmail: string;
+  totalCents: number;
+}) {
+  const split = columboVerifySplitCents(params.totalCents);
+  if (!split.valid) {
+    throw new Error('Columbo Arithmetic Audit Failed: Invalid 50/25/25 split.');
+  }
+
+  const cleanTitle = conciergeStripPii(params.itemTitle || 'Marketplace Item').slice(0, 60);
+  const customMeta = JSON.stringify({
+    orderTrackingId: params.orderTrackingId,
+    itemTitle: cleanTitle,
+    sellerEmail: params.sellerPayPalEmail,
+    buyerEmail: params.buyerPropertyPayPalEmail,
+    totalCents: params.totalCents,
+    zeroTdexCustody: true,
+    tdexFeeCents: 0,
+  });
+
+  // Zero-Custody 3-Way Multiparty Routing:
+  // Buyer payment splits at PayPal processor settlement directly to 3 external user/escrow payees.
+  // TDEX never appears as payee and collects $0 fee or commission.
+  const purchaseUnits = [
+    {
+      reference_id: `${params.orderTrackingId}-50CASH`,
+      custom_id: customMeta,
+      description: `${cleanTitle} — 50% Direct Seller Cash (Article 12.1)`,
+      payee: {
+        email_address: params.sellerPayPalEmail,
+      },
+      amount: {
+        currency_code: 'USD',
+        value: (split.sellerCashCents / 100).toFixed(2),
+      },
+    },
+    {
+      reference_id: `${params.orderTrackingId}-25SELLER-PROP`,
+      custom_id: customMeta,
+      description: `${cleanTitle} — 25% Seller Segregated Property Wallet`,
+      payee: {
+        email_address: params.sellerPropertyPayPalEmail,
+      },
+      amount: {
+        currency_code: 'USD',
+        value: (split.sellerEquityCents / 100).toFixed(2),
+      },
+    },
+    {
+      reference_id: `${params.orderTrackingId}-25BUYER-PROP`,
+      custom_id: customMeta,
+      description: `${cleanTitle} — 25% Buyer Segregated Property Wallet`,
+      payee: {
+        email_address: params.buyerPropertyPayPalEmail,
+      },
+      amount: {
+        currency_code: 'USD',
+        value: (split.buyerEquityCents / 100).toFixed(2),
+      },
+    },
+  ];
+
+  return {
+    split,
+    purchaseUnits,
+    tdexFeeCents: 0,
+    zeroTdexCustody: true,
+  };
 }
 
 async function verifyPayPalWebhookSignature(
@@ -379,8 +509,8 @@ async function verifyPayPalWebhookSignature(
 ): Promise<boolean> {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) {
-    // Reject unverified live webhook payloads; only allow unsigned local sandbox testing
-    return process.env.PAYPAL_ENV !== 'live' && PRODUCTION_REAL_MONEY_HOLD;
+    // Live webhooks MUST have a configured webhook ID; sandbox unsigned testing permitted only when PAYPAL_ENV !== 'live'
+    return !IS_LIVE_PAYPAL_ENV;
   }
   try {
     const accessToken = await getPayPalAccessToken();
@@ -422,8 +552,8 @@ function settlePayPal502525Receipt(params: {
   }
 
   const split = columboVerifySplitCents(params.totalCents);
-  const resolvedSeller = (params.sellerEmail || 'demo-seller.invalid').toLowerCase();
-  const resolvedBuyer = (params.buyerEmail || 'demo-buyer.invalid').toLowerCase();
+  const resolvedSeller = (params.sellerEmail || 'sandbox-seller@paypal-wallet.invalid').toLowerCase();
+  const resolvedBuyer = (params.buyerEmail || 'sandbox-buyer@paypal-wallet.invalid').toLowerCase();
   const seller = store.ownersByEmail[resolvedSeller];
   const buyer = store.ownersByEmail[resolvedBuyer];
 
@@ -436,12 +566,12 @@ function settlePayPal502525Receipt(params: {
   }
 
   const mode: PersistedTradeReceipt['mode'] =
-    process.env.PAYPAL_ENV === 'live' && !PRODUCTION_REAL_MONEY_HOLD
+    IS_LIVE_PAYPAL_ENV && !LIVE_PAYPAL_CHECKOUT_BLOCKED
       ? 'LIVE_ESCROW'
       : 'SANDBOX_SIMULATED_ESCROW_HOLD';
 
   const block = commitToAppendOnlyLedger(
-    'MARKETPLACE_50_25_25_SETTLED',
+    'MARKETPLACE_50_25_25_MULTIPARTY_SETTLED',
     {
       orderTrackingId: params.trackingId,
       itemTitle: params.itemTitle,
@@ -449,6 +579,8 @@ function settlePayPal502525Receipt(params: {
       sellerCashCents: split.sellerCashCents,
       sellerEquityCents: split.sellerEquityCents,
       buyerEquityCents: split.buyerEquityCents,
+      tdexFeeCents: 0,
+      zeroTdexCustody: true,
       mode,
     },
     params.witnessId,
@@ -458,7 +590,7 @@ function settlePayPal502525Receipt(params: {
   const receipt: PersistedTradeReceipt = {
     receiptId: params.trackingId,
     itemId: params.trackingId,
-    itemTitle: conciergeStripPii(params.itemTitle || 'PayPal Verified Trade'),
+    itemTitle: conciergeStripPii(params.itemTitle || 'PayPal Multiparty Verified Trade'),
     totalCents: params.totalCents,
     sellerCashCents: split.sellerCashCents,
     sellerEquityCents: split.sellerEquityCents,
@@ -476,156 +608,189 @@ function settlePayPal502525Receipt(params: {
   return { receipt, alreadySettled: false };
 }
 
-async function dispatchPayPalSeller50Payout(params: {
-  trackingId: string;
-  sellerEmail: string;
-  sellerCashCents: number;
-  itemTitle: string;
-}): Promise<{ dispatched: boolean; payoutBatchId?: string; skippedReason?: string }> {
-  if (!canUsePayPalRestApi() || params.sellerCashCents <= 0) {
-    return { dispatched: false, skippedReason: 'CREDENTIALS_OR_AMOUNT_NOT_READY' };
-  }
-  if (process.env.PAYPAL_ENV === 'live' && PRODUCTION_REAL_MONEY_HOLD) {
-    return { dispatched: false, skippedReason: 'PRODUCTION_REAL_MONEY_HOLD_ACTIVE' };
-  }
-  if (process.env.PAYPAL_ENV !== 'live' && process.env.PAYPAL_ENABLE_SANDBOX_PAYOUTS !== 'true') {
-    return { dispatched: false, skippedReason: 'SANDBOX_PAYOUTS_DRY_RUN' };
-  }
-
-  try {
-    const accessToken = await getPayPalAccessToken();
-    const res = await fetch(`${PAYPAL_API_BASE}/v1/payments/payouts`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender_batch_header: {
-          sender_batch_id: `${params.trackingId}-50CASH`,
-          email_subject: 'TDEX Article 12.1 — Your 50% Instant Seller Cash Payout',
-        },
-        items: [
-          {
-            recipient_type: 'EMAIL',
-            amount: {
-              value: (params.sellerCashCents / 100).toFixed(2),
-              currency: 'USD',
-            },
-            note: `50% Seller Cash for ${params.itemTitle} (Remaining 25% + 25% locked in segregated Dexpa Property Escrow).`,
-            sender_item_id: `${params.trackingId}-ITEM`,
-            receiver: params.sellerEmail,
-          },
-        ],
-      }),
-    });
-    const data = (await res.json()) as {
-      batch_header?: { payout_batch_id?: string };
-    };
-    return {
-      dispatched: res.ok,
-      payoutBatchId: data.batch_header?.payout_batch_id,
-    };
-  } catch {
-    return { dispatched: false, skippedReason: 'PAYOUT_DISPATCH_ERROR' };
-  }
-}
-
 app.get('/api/marketplace/paypal-status', (_req: Request, res: Response) => {
   res.json({
-    paypalEnv: process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox',
-    merchantEmail: PAYPAL_MERCHANT_EMAIL,
+    paypalEnv: IS_LIVE_PAYPAL_ENV ? 'live' : 'sandbox',
+    settlementArchitecture: 'PAYPAL_COMMERCE_MULTIPARTY_DIRECT_3WAY_SPLIT',
+    zeroTdexCustody: true,
+    tdexFeeCents: 0,
     credentialsConfigured: Boolean(
       process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET
     ),
     webhookConfigured: Boolean(process.env.PAYPAL_WEBHOOK_ID),
+    sandboxTestingEnabled: !IS_LIVE_PAYPAL_ENV,
     productionRealMoneyHold: PRODUCTION_REAL_MONEY_HOLD,
-    payoutsCapabilityWired: true,
   });
 });
 
 app.post('/api/marketplace/create-paypal-order', async (req: Request, res: Response) => {
-  if (PRODUCTION_REAL_MONEY_HOLD || !canUsePayPalRestApi()) {
+  if (LIVE_PAYPAL_CHECKOUT_BLOCKED) {
     res.status(403).json({
-      error: 'Working draft mode: real card billing and PayPal checkout are not active yet.',
+      error: 'Live PayPal real-money checkout requires TDEX_LIVE_ESCROW_ENABLED=true.',
       productionRealMoneyHold: true,
     });
     return;
   }
 
-  const { itemTitle, priceUsd, sellerEmail, buyerEmail } = req.body;
-  const totalCents = Math.round(Number(priceUsd || 0) * 100);
-  if (!itemTitle || totalCents <= 0) {
+  const authedBuyer = findOptionalOwnerFromHeader(req);
+  const {
+    itemId,
+    itemTitle,
+    priceUsd,
+    sellerEmail,
+    buyerEmail,
+    sellerPropertyWalletEmail,
+    buyerPropertyWalletEmail,
+  } = req.body;
+
+  const listing = itemId ? store.listings.find((it) => it.id === String(itemId)) : undefined;
+  const resolvedTitle = String(listing?.title || itemTitle || 'Neighborhood Trade');
+  const resolvedPrice = Number(priceUsd ?? listing?.price ?? 0);
+  const totalCents = Math.round(resolvedPrice * 100);
+  if (!resolvedTitle || !Number.isFinite(totalCents) || totalCents <= 0) {
     res.status(400).json({ error: 'Valid itemTitle and positive priceUsd are required.' });
     return;
   }
 
-  // Stage 2: Columbo Arithmetic Audit
-  const split = columboVerifySplitCents(totalCents);
-  if (!split.valid) {
-    res.status(400).json({ error: 'Columbo Audit Failed: Invalid 50/25/25 split.' });
-    return;
-  }
-
   // Stage 3: Pipito Constitutional Gate Check
-  const gate = pipitoCheckConstitutionalGates({});
+  const gate = pipitoCheckConstitutionalGates({
+    accountQuarantined: authedBuyer?.globalQuarantine,
+  });
   if (!gate.cleared) {
     res.status(403).json({ error: gate.reason });
     return;
   }
 
-  try {
-    const accessToken = await getPayPalAccessToken();
-    const orderTrackingId = generateTrackingId('MKT');
-    const orderRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        intent: 'CAPTURE',
-        purchase_units: [
-          {
-            reference_id: orderTrackingId,
-            custom_id: JSON.stringify({
-              orderTrackingId,
-              itemTitle: String(itemTitle).slice(0, 60),
-              sellerEmail,
-              buyerEmail,
-              totalCents,
-            }),
-            description: `${itemTitle} — Article 12 Split (50% Cash / 25% Seller / 25% Buyer)`,
-            amount: {
-              currency_code: 'USD',
-              value: (totalCents / 100).toFixed(2),
-            },
-          },
-        ],
-      }),
-    });
-    const orderData = (await orderRes.json()) as {
-      id?: string;
-      status?: string;
-      links?: Array<{ rel?: string; href?: string }>;
-    };
-    const approveUrl = orderData.links?.find((l) => l.rel === 'approve')?.href;
-    res.status(orderRes.status).json({
-      ...orderData,
-      orderTrackingId,
-      approveUrl,
-      mode: process.env.PAYPAL_ENV === 'live' ? 'PAYPAL_LIVE_ORDER' : 'PAYPAL_SANDBOX_ORDER',
-      columboAuditHash: split.auditHash,
-      notice:
-        process.env.PAYPAL_ENV === 'live'
-          ? 'Live PayPal order created with Article 12.1 50/25/25 tracking.'
-          : 'PayPal Sandbox test order created via api-m.sandbox.paypal.com (no real money moved).',
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: err instanceof Error ? err.message : 'PayPal order creation error.',
-    });
+  const resolvedSellerPayPal = String(
+    listing?.sellerEmail || sellerEmail || 'seller-cash@sandbox.paypal.invalid'
+  )
+    .trim()
+    .toLowerCase();
+  const resolvedSellerPropertyPayPal = String(
+    sellerPropertyWalletEmail || resolvedSellerPayPal
+  )
+    .trim()
+    .toLowerCase();
+  const resolvedBuyerPropertyPayPal = String(
+    buyerPropertyWalletEmail ||
+      authedBuyer?.email ||
+      buyerEmail ||
+      'buyer-property@sandbox.paypal.invalid'
+  )
+    .trim()
+    .toLowerCase();
+
+  const orderTrackingId = generateTrackingId('MKT');
+  const multiparty = buildPayPalMultipartyPurchaseUnits({
+    orderTrackingId,
+    itemTitle: resolvedTitle,
+    sellerPayPalEmail: resolvedSellerPayPal,
+    sellerPropertyPayPalEmail: resolvedSellerPropertyPayPal,
+    buyerPropertyPayPalEmail: resolvedBuyerPropertyPayPal,
+    totalCents,
+  });
+
+  // Live REST API path (when live/sandbox PayPal REST keys are configured)
+  if (canUsePayPalRestApi()) {
+    try {
+      const accessToken = await getPayPalAccessToken();
+      const orderRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          intent: 'CAPTURE',
+          purchase_units: multiparty.purchaseUnits,
+        }),
+      });
+      const orderData = (await orderRes.json()) as {
+        id?: string;
+        status?: string;
+        links?: Array<{ rel?: string; href?: string }>;
+      };
+      const approveUrl = orderData.links?.find((l) => l.rel === 'approve')?.href;
+
+      if (!IS_LIVE_PAYPAL_ENV && !orderRes.ok) {
+        // In Sandbox preview, fall through cleanly to Multiparty Sandbox Simulation if REST keys are placeholder/unlinked
+      } else {
+        recordMovement(store, {
+          actorId: authedBuyer?.ownerUuid || 'PAYPAL_MULTIPARTY_CHECKOUT',
+          actorRole: 'DILOS_SYSTEM',
+          action: 'PAYPAL_MULTIPARTY_ORDER_CREATED',
+          targetResource: orderTrackingId,
+          dilosStage: 'COLUMBO',
+          summary: `Created 3-way zero-custody PayPal Multiparty order ($${(totalCents / 100).toFixed(2)}, $0 TDEX fee).`,
+        });
+
+        res.status(orderRes.status).json({
+          ...orderData,
+          orderTrackingId,
+          approveUrl,
+          purchase_units: multiparty.purchaseUnits,
+          zeroTdexCustody: true,
+          tdexFeeCents: 0,
+          mode: IS_LIVE_PAYPAL_ENV
+            ? 'PAYPAL_LIVE_MULTIPARTY_ORDER'
+            : 'PAYPAL_SANDBOX_MULTIPARTY_ORDER',
+          columboAuditHash: multiparty.split.auditHash,
+          notice: IS_LIVE_PAYPAL_ENV
+            ? 'Live PayPal Commerce Multiparty 3-way checkout created ($0 TDEX custody, direct seller + property wallet payees).'
+            : 'PayPal Sandbox Multiparty 3-way checkout created via api-m.sandbox.paypal.com (no real money moved; zero TDEX custody).',
+        });
+        return;
+      }
+    } catch (err) {
+      if (IS_LIVE_PAYPAL_ENV) {
+        res.status(500).json({
+          error: err instanceof Error ? err.message : 'PayPal multiparty order creation error.',
+        });
+        return;
+      }
+      // Sandbox mode: fall through to Multiparty Sandbox Simulation below
+    }
   }
+
+  // Immediate Sandbox Testing Fallback (when PAYPAL_ENV !== 'live' and REST credentials are omitted)
+  if (IS_LIVE_PAYPAL_ENV) {
+    res.status(403).json({
+      error: 'Live PayPal checkout requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.',
+    });
+    return;
+  }
+
+  const settled = settlePayPal502525Receipt({
+    trackingId: orderTrackingId,
+    itemTitle: resolvedTitle,
+    sellerEmail: resolvedSellerPayPal,
+    buyerEmail: resolvedBuyerPropertyPayPal,
+    totalCents,
+    witnessId: 'PAYPAL_SANDBOX_MULTIPARTY_SIM',
+  });
+
+  recordMovement(store, {
+    actorId: authedBuyer?.ownerUuid || 'SANDBOX_MULTIPARTY_BUYER',
+    actorRole: 'DILOS_SYSTEM',
+    action: 'PAYPAL_MULTIPARTY_SANDBOX_SETTLED',
+    targetResource: orderTrackingId,
+    dilosStage: 'COLUMBO',
+    summary: `Executed 3-way zero-custody PayPal Multiparty Sandbox split ($${(totalCents / 100).toFixed(2)}, $0 TDEX fee).`,
+  });
+
+  res.status(201).json({
+    id: `PAYPAL-SBX-${orderTrackingId}`,
+    status: 'COMPLETED',
+    orderTrackingId,
+    purchase_units: multiparty.purchaseUnits,
+    zeroTdexCustody: true,
+    tdexFeeCents: 0,
+    mode: 'PAYPAL_SANDBOX_MULTIPARTY_SPLIT',
+    columboAuditHash: multiparty.split.auditHash,
+    receipt: settled.receipt,
+    notice:
+      'PayPal Commerce Multiparty Sandbox test active: 50% seller cash + 25% seller property + 25% buyer property routed directly to external payees ($0 TDEX fee, zero custody).',
+  });
 });
 
 app.post('/api/marketplace/capture-paypal-order', async (req: Request, res: Response) => {
@@ -634,22 +799,48 @@ app.post('/api/marketplace/capture-paypal-order', async (req: Request, res: Resp
     res.status(400).json({ error: 'PayPal orderId is required.' });
     return;
   }
+  if (LIVE_PAYPAL_CHECKOUT_BLOCKED) {
+    res.status(403).json({
+      error: 'Live PayPal capture requires TDEX_LIVE_ESCROW_ENABLED=true.',
+    });
+    return;
+  }
+  if (!IS_LIVE_PAYPAL_ENV && String(orderId).startsWith('PAYPAL-SBX-')) {
+    const trackingId = String(orderId).replace(/^PAYPAL-SBX-/, '');
+    const existing = store.tradeReceipts.find((r) => r.receiptId === trackingId);
+    if (existing) {
+      res.json({
+        status: 'COMPLETED',
+        paypalOrderId: orderId,
+        zeroTdexCustody: true,
+        tdexFeeCents: 0,
+        receipt: existing,
+        alreadySettled: true,
+      });
+      return;
+    }
+    res.status(404).json({ error: 'Sandbox multiparty order receipt not found.' });
+    return;
+  }
   if (!canUsePayPalRestApi()) {
     res.status(403).json({
-      error: 'PayPal REST capture requires configured sandbox/live credentials and unlocked mode.',
+      error: 'PayPal REST capture requires configured PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.',
     });
     return;
   }
 
   try {
     const accessToken = await getPayPalAccessToken();
-    const capRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const capRes = await fetch(
+      `${PAYPAL_API_BASE}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     const capData = (await capRes.json()) as {
       id?: string;
       status?: string;
@@ -669,7 +860,7 @@ app.post('/api/marketplace/capture-paypal-order', async (req: Request, res: Resp
       return;
     }
 
-    const capture = capData.purchase_units?.[0]?.payments?.captures?.[0];
+    const firstCapture = capData.purchase_units?.[0]?.payments?.captures?.[0];
     let parsed: {
       orderTrackingId?: string;
       itemTitle?: string;
@@ -678,51 +869,54 @@ app.post('/api/marketplace/capture-paypal-order', async (req: Request, res: Resp
       totalCents?: number;
     } = {};
     try {
-      parsed = JSON.parse(capture?.custom_id || '{}');
+      parsed = JSON.parse(firstCapture?.custom_id || '{}');
     } catch {
       parsed = {};
     }
-    const totalCents =
-      Number(parsed.totalCents || 0) ||
-      Math.round(Number(capture?.amount?.value || 0) * 100);
-    const trackingId = parsed.orderTrackingId || capData.purchase_units?.[0]?.reference_id || String(orderId);
+
+    const summedCaptureCents = (capData.purchase_units || []).reduce((acc, unit) => {
+      const val = Number(unit.payments?.captures?.[0]?.amount?.value || 0);
+      return acc + Math.round(val * 100);
+    }, 0);
+    const totalCents = Number(parsed.totalCents || 0) || summedCaptureCents;
+    const trackingId =
+      parsed.orderTrackingId ||
+      String(capData.purchase_units?.[0]?.reference_id || orderId).replace(
+        /-(50CASH|25SELLER-PROP|25BUYER-PROP)$/,
+        ''
+      );
+
     const settled = settlePayPal502525Receipt({
       trackingId,
-      itemTitle: parsed.itemTitle || 'PayPal Marketplace Item',
+      itemTitle: parsed.itemTitle || 'PayPal Multiparty Marketplace Item',
       sellerEmail: parsed.sellerEmail,
       buyerEmail: parsed.buyerEmail,
       totalCents,
-      witnessId: 'PAYPAL_CAPTURE_API',
+      witnessId: 'PAYPAL_MULTIPARTY_DIRECT_SETTLEMENT',
     });
-
-    const payout = !settled.alreadySettled && parsed.sellerEmail
-      ? await dispatchPayPalSeller50Payout({
-          trackingId,
-          sellerEmail: parsed.sellerEmail,
-          sellerCashCents: settled.receipt.sellerCashCents,
-          itemTitle: settled.receipt.itemTitle,
-        })
-      : { dispatched: false, skippedReason: 'ALREADY_SETTLED_OR_NO_SELLER_EMAIL' };
 
     res.json({
       status: capData.status,
       paypalOrderId: capData.id,
-      captureId: capture?.id,
-      payout,
+      captureIds: (capData.purchase_units || []).map(
+        (u) => u.payments?.captures?.[0]?.id || ''
+      ),
+      zeroTdexCustody: true,
+      tdexFeeCents: 0,
       ...settled,
     });
   } catch (err) {
     res.status(500).json({
-      error: err instanceof Error ? err.message : 'PayPal order capture error.',
+      error: err instanceof Error ? err.message : 'PayPal multiparty order capture error.',
     });
   }
 });
 
-// PayPal Webhook Handler: Hard-disabled during pre-launch hold; verifies signature & commits 50/25/25 Ledger upon PAYMENT.CAPTURE.COMPLETED
+// PayPal Webhook Handler: verifies PayPal signature & commits ledger upon multiparty capture completion
 app.post('/api/webhooks/paypal', async (req: Request, res: Response) => {
-  if (PRODUCTION_REAL_MONEY_HOLD) {
+  if (LIVE_PAYPAL_CHECKOUT_BLOCKED) {
     res.status(403).json({
-      error: 'Working draft mode: live PayPal webhooks are not active yet.',
+      error: 'Live PayPal webhooks require TDEX_LIVE_ESCROW_ENABLED=true.',
       productionRealMoneyHold: true,
     });
     return;
@@ -755,25 +949,17 @@ app.post('/api/webhooks/paypal', async (req: Request, res: Response) => {
     if (totalCents > 0) {
       const trackingId =
         parsed.orderTrackingId || String(event?.resource?.id || generateTrackingId('MKT'));
-      const settled = settlePayPal502525Receipt({
+      settlePayPal502525Receipt({
         trackingId,
-        itemTitle: parsed.itemTitle || 'PayPal Webhook Settled Trade',
+        itemTitle: parsed.itemTitle || 'PayPal Multiparty Webhook Trade',
         sellerEmail: parsed.sellerEmail,
         buyerEmail: parsed.buyerEmail,
         totalCents,
-        witnessId: 'PAYPAL_VERIFIED_GATEWAY',
+        witnessId: 'PAYPAL_MULTIPARTY_WEBHOOK_GATEWAY',
       });
-      if (!settled.alreadySettled && parsed.sellerEmail) {
-        await dispatchPayPalSeller50Payout({
-          trackingId,
-          sellerEmail: parsed.sellerEmail,
-          sellerCashCents: settled.receipt.sellerCashCents,
-          itemTitle: settled.receipt.itemTitle,
-        });
-      }
     }
   }
-  res.status(200).json({ received: true });
+  res.status(200).json({ received: true, zeroTdexCustody: true, tdexFeeCents: 0 });
 });
 
 // ============================================================================
@@ -854,6 +1040,15 @@ app.post('/api/marketplace/list-item', (req: Request, res: Response) => {
     authedOwner?.ownerUuid || 'NEIGHBORHOOD_LISTER',
     sha256(`LIST|${newListing.id}|${newListing.price}`)
   );
+
+  recordMovement(store, {
+    actorId: authedOwner?.ownerUuid || 'NEIGHBORHOOD_LISTER',
+    actorRole: 'DILOS_SYSTEM',
+    action: 'MARKETPLACE_ITEM_LISTED',
+    targetResource: newListing.id,
+    dilosStage: 'CONCIERGE',
+    summary: `Marketplace listing added (${newListing.title} — $${newListing.price}).`,
+  });
 
   res.status(201).json({
     item: newListing,
@@ -952,6 +1147,15 @@ app.post('/api/marketplace/execute-trade', (req: Request, res: Response) => {
   store.tradeReceipts.push(receipt);
   saveStoreAtomic(store);
 
+  recordMovement(store, {
+    actorId: authedBuyer?.ownerUuid || 'SANDBOX_TRADE_WITNESS',
+    actorRole: 'DILOS_SYSTEM',
+    action: 'MARKETPLACE_50_25_25_EXECUTED',
+    targetResource: receipt.receiptId,
+    dilosStage: 'COLUMBO',
+    summary: `Audited 50/25/25 split ($${(totalCents / 100).toFixed(2)}) for "${resolvedTitle}" (hash ${split.auditHash.slice(0, 12)}...).`,
+  });
+
   res.status(201).json({
     receipt,
     productionRealMoneyHold: PRODUCTION_REAL_MONEY_HOLD,
@@ -1040,6 +1244,15 @@ app.post('/api/nda/submit', (req: Request, res: Response) => {
     'EDUCATOR_ATTESTED_PENDING_JURY',
     evidenceHash
   );
+
+  recordMovement(store, {
+    actorId: 'CONCIERGE_INTAKE',
+    actorRole: 'DILOS_SYSTEM',
+    action: 'NDA_SUBMISSION_FILED',
+    targetResource: block.eventId,
+    dilosStage: 'CONCIERGE',
+    summary: `Blind NDA submission filed (${anonymizedTitle || 'Project'}) with PII stripped & educator attested.`,
+  });
 
   res.status(201).json({
     trackingId: block.eventId,
@@ -1165,6 +1378,16 @@ app.post('/api/studios/submit', (req: Request, res: Response) => {
 
   store.studioSubmissions.push(record);
   saveStoreAtomic(store);
+
+  recordMovement(store, {
+    actorId: 'STUDIO_CONCIERGE',
+    actorRole: 'DILOS_SYSTEM',
+    action: 'STUDIO_SUBMISSION_FILED',
+    targetResource: record.trackingId,
+    dilosStage: 'CONCIERGE',
+    summary: `Discovery Studio packet queued (${record.anonymizedTitle}) for 12-Owner Out-of-State Blind Jury.`,
+  });
+
   res.status(201).json(record);
 });
 
@@ -1196,6 +1419,476 @@ app.get('/robots.txt', (_req: Request, res: Response) => {
 app.get('/sitemap.xml', (_req: Request, res: Response) => {
   res.type('application/xml');
   res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
+// ============================================================================
+// 10. DILOS V2 CLOSED GOVERNANCE VAULT, COURT GATE & AUDIT LEDGER (ART. 5, 7 & 8)
+// ============================================================================
+function requireVaultSession(req: Request, res: Response, next: NextFunction) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const session = token ? store.vaultSessions[token] : undefined;
+  if (!session || session.expiresAtMs <= Date.now()) {
+    if (token && store.vaultSessions[token]) {
+      delete store.vaultSessions[token];
+      saveStoreAtomic(store);
+    }
+    res.status(401).json({
+      error: 'Closed Vault Authentication Required. Public access is strictly denied.',
+      code: 'VAULT_AUTH_REQUIRED',
+    });
+    return;
+  }
+  (req as Request & { vaultSession: PersistedVaultSession }).vaultSession = session;
+  next();
+}
+
+app.post('/api/vault/auth/login', (req: Request, res: Response) => {
+  const { role, actorName, passcode } = req.body as {
+    role?: VaultRole;
+    actorName?: string;
+    passcode?: string;
+  };
+  const validRoles: VaultRole[] = ['FOUNDER', 'ARBITRATION_COURT', 'BOARD_MEMBER', 'AI_OVERSIGHT'];
+  if (!role || !validRoles.includes(role) || !passcode) {
+    res.status(400).json({ error: 'Valid Vault role and passcode are required.' });
+    return;
+  }
+
+  const ipKey = String(req.ip || req.socket.remoteAddress || 'unknown');
+  const result = authenticateVaultPasscode(store, {
+    role,
+    actorName: String(actorName || ''),
+    passcode: String(passcode),
+    ipKey,
+  });
+
+  if (!result.ok || !result.session) {
+    res.status(result.statusCode).json({ error: result.error });
+    return;
+  }
+
+  const activeOrder =
+    result.session.role === 'BOARD_MEMBER'
+      ? getActiveBoardCourtOrder(store, result.session.actorId)
+      : undefined;
+
+  res.json({
+    token: result.session.token,
+    session: result.session,
+    isTemporaryCredential: result.isTemporaryCredential,
+    hasCourtClearance: result.session.role !== 'BOARD_MEMBER' || Boolean(activeOrder),
+    activeCourtOrder: activeOrder || null,
+    emergencyStopActive: store.vaultSecurityState.emergencyStopActive,
+  });
+});
+
+app.post('/api/vault/auth/logout', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  delete store.vaultSessions[session.token];
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: 'VAULT_LOGOUT',
+    targetResource: `SESSION:${session.actorId}`,
+    dilosStage: 'CONCIERGE',
+    summary: `${session.actorLabel} locked and signed out of the Closed Vault.`,
+  });
+  res.json({ ok: true });
+});
+
+app.get('/api/vault/status', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  const activeOrder =
+    session.role === 'BOARD_MEMBER'
+      ? getActiveBoardCourtOrder(store, session.actorId)
+      : undefined;
+
+  const credentialMeta = Object.values(store.vaultCredentials).map((c) =>
+    c
+      ? {
+          role: c.role,
+          label: c.label,
+          isTemporary: c.isTemporary,
+          updatedAtUtc: c.updatedAtUtc,
+        }
+      : null
+  );
+
+  res.json({
+    session,
+    isTemporaryCredential: store.vaultCredentials[session.role]?.isTemporary ?? true,
+    hasCourtClearance: session.role !== 'BOARD_MEMBER' || Boolean(activeOrder),
+    activeCourtOrder: activeOrder || null,
+    emergencyStopActive: store.vaultSecurityState.emergencyStopActive,
+    emergencyStopReason: store.vaultSecurityState.emergencyStopReason,
+    governanceState: {
+      ...store.governanceState,
+      verifiedOwnerCount: Object.keys(store.ownersByEmail).length,
+      fcuCharterThreshold: 1000,
+    },
+    piiVaultCount: Object.keys(store.piiVault).length,
+    ownersCount: Object.keys(store.ownersByEmail).length,
+    creditUnionThreshold: {
+      currentOwners: Object.keys(store.ownersByEmail).length,
+      targetOwners: 1000,
+      eligible: Object.keys(store.ownersByEmail).length >= 1000,
+    },
+    credentialMeta: session.role === 'FOUNDER' ? credentialMeta.filter(Boolean) : [],
+  });
+});
+
+app.get('/api/vault/filings', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+
+  if (session.role === 'BOARD_MEMBER') {
+    const activeOrder = getActiveBoardCourtOrder(store, session.actorId);
+    if (!activeOrder) {
+      recordMovement(store, {
+        actorId: session.actorId,
+        actorRole: session.role,
+        action: 'BOARD_ACCESS_BLOCKED_NO_COURT_ORDER',
+        targetResource: 'VAULT_FILINGS',
+        dilosStage: 'PIPITO',
+        summary: `Blocked Board Member ${session.actorLabel} from reading Vault filings without an active Internal Arbitration Court Clearance Order.`,
+      });
+      res.status(403).json({
+        code: 'COURT_APPROVAL_REQUIRED',
+        error:
+          'Court Approval Required: Even Board of Directors members must submit a formal request and receive an Internal Arbitration Court Clearance Order before viewing Vault filings.',
+      });
+      return;
+    }
+
+    const scopedFilings = store.vaultFilings.filter((f) =>
+      canScopeAccessCategory(activeOrder.scope, f.category)
+    );
+    recordMovement(store, {
+      actorId: session.actorId,
+      actorRole: session.role,
+      action: 'VAULT_FILINGS_LIST_READ',
+      targetResource: `SCOPE:${activeOrder.scope}`,
+      courtOrderId: activeOrder.orderId,
+      dilosStage: 'HUMAN_COURT_WITNESS',
+      summary: `Board Member ${session.actorLabel} viewed ${scopedFilings.length} scoped filing(s) under Court Order ${activeOrder.orderId} (${activeOrder.caseNumber}).`,
+    });
+    res.json({ filings: scopedFilings, activeCourtOrder: activeOrder });
+    return;
+  }
+
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: 'VAULT_FILINGS_LIST_READ',
+    targetResource: 'ALL_VAULT_FILINGS',
+    dilosStage: session.role === 'ARBITRATION_COURT' ? 'HUMAN_COURT_WITNESS' : 'COLUMBO',
+    summary: `${session.actorLabel} (${session.role}) accessed the Vault filings index (${store.vaultFilings.length} records).`,
+  });
+
+  res.json({ filings: store.vaultFilings, activeCourtOrder: null });
+});
+
+app.post('/api/vault/filings', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role === 'BOARD_MEMBER') {
+    const activeOrder = getActiveBoardCourtOrder(store, session.actorId);
+    if (!activeOrder || !store.governanceState.boardSeated) {
+      res.status(403).json({
+        error:
+          'Phase 1 / Court Restriction: Board Members require Phase 2 seating or active Court Clearance to file Vault documents.',
+      });
+      return;
+    }
+  }
+
+  const { folder, category, title, classification, summary, details, supersedesDocId } = req.body as {
+    folder?: VaultFolderName;
+    category?: 'FILINGS' | 'PII_OVERSIGHT' | 'AI_AUDIT_LOGS' | 'ESCROW_SAFEKEEPING';
+    title?: string;
+    classification?: 'BOARD_COURT_ONLY' | 'FOUNDER_COURT_ONLY' | 'DILOS_SEALED' | 'BOARD_AND_PUSHERS';
+    summary?: string;
+    details?: Record<string, unknown>;
+    supersedesDocId?: string;
+  };
+
+  if (!title || !summary) {
+    res.status(400).json({ error: 'Document title and summary are required.' });
+    return;
+  }
+
+  const filing = fileVaultRecord(store, session, {
+    folder: folder || '04_Board_Minutes_Votes',
+    category: category || 'FILINGS',
+    title,
+    classification: classification || 'BOARD_COURT_ONLY',
+    summary,
+    details,
+    supersedesDocId,
+  });
+
+  res.status(201).json({ filing });
+});
+
+app.post('/api/vault/filings/:filingId/inspect', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  const filing = store.vaultFilings.find((f) => f.filingId === req.params.filingId);
+  if (!filing) {
+    res.status(404).json({ error: 'Vault document not found.' });
+    return;
+  }
+
+  let courtOrderId: string | undefined;
+  if (session.role === 'BOARD_MEMBER') {
+    const activeOrder = getActiveBoardCourtOrder(store, session.actorId);
+    if (!activeOrder || !canScopeAccessCategory(activeOrder.scope, filing.category)) {
+      recordMovement(store, {
+        actorId: session.actorId,
+        actorRole: session.role,
+        action: 'BOARD_DOC_INSPECT_BLOCKED',
+        targetResource: filing.filingId,
+        dilosStage: 'PIPITO',
+        summary: `Blocked unauthorized inspection attempt of ${filing.filingId} by ${session.actorLabel}.`,
+      });
+      res.status(403).json({
+        code: 'COURT_APPROVAL_REQUIRED',
+        error: 'Court Approval Required for this document category.',
+      });
+      return;
+    }
+    courtOrderId = activeOrder.orderId;
+  }
+
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: 'DOC_VIEWED',
+    targetResource: filing.filingId,
+    courtOrderId,
+    dilosStage: 'HUMAN_COURT_WITNESS',
+    summary: `Viewed "${filing.title}" (v${filing.version}) — hash ${filing.dilosIntegrityHash.slice(0, 12)}...`,
+  });
+
+  res.json({ filing });
+});
+
+app.get('/api/vault/court-requests', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role === 'BOARD_MEMBER') {
+    const ownRequests = store.courtAccessRequests.filter(
+      (r) => r.requesterActorId === session.actorId
+    );
+    const ownOrders = store.courtOrders.filter((o) => o.boardActorId === session.actorId);
+    res.json({ requests: ownRequests, orders: ownOrders });
+    return;
+  }
+
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: 'COURT_DOCKET_VIEWED',
+    targetResource: 'COURT_ACCESS_DOCKET',
+    dilosStage: 'HUMAN_COURT_WITNESS',
+    summary: `${session.actorLabel} reviewed the Court Clearance docket (${store.courtAccessRequests.length} request(s)).`,
+  });
+
+  res.json({
+    requests: store.courtAccessRequests,
+    orders: store.courtOrders,
+  });
+});
+
+app.post('/api/vault/court-requests', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'BOARD_MEMBER' && session.role !== 'FOUNDER') {
+    res.status(403).json({ error: 'Only Board Directors or Founder can file access requests.' });
+    return;
+  }
+
+  const { scope, justification, durationHours } = req.body as {
+    scope?: VaultAccessScope;
+    justification?: string;
+    durationHours?: number;
+  };
+
+  if (!justification || justification.trim().length < 10) {
+    res.status(400).json({
+      error: 'A detailed constitutional/oversight justification (minimum 10 characters) is required for Court review.',
+    });
+    return;
+  }
+
+  const validScopes: VaultAccessScope[] = [
+    'FILINGS',
+    'PII_OVERSIGHT',
+    'AI_AUDIT_LOGS',
+    'ALL_VAULT_RECORDS',
+  ];
+  const resolvedScope = scope && validScopes.includes(scope) ? scope : 'FILINGS';
+
+  const requestRecord = createCourtAccessRequest(store, session, {
+    scope: resolvedScope,
+    justification,
+    durationHours: Number(durationHours || 24),
+  });
+
+  res.status(201).json({ request: requestRecord });
+});
+
+app.post('/api/vault/court-requests/:requestId/review', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'ARBITRATION_COURT') {
+    recordMovement(store, {
+      actorId: session.actorId,
+      actorRole: session.role,
+      action: 'UNAUTHORIZED_COURT_SIGN_ATTEMPT',
+      targetResource: req.params.requestId,
+      dilosStage: 'PIPITO',
+      summary: `Blocked non-Court role (${session.role}) from approving Court request ${req.params.requestId}.`,
+    });
+    res.status(403).json({
+      error:
+        'Judicial Separation Gate: Only the Internal Arbitration Court may approve or deny Board access requests.',
+    });
+    return;
+  }
+
+  const { approve, caseNumber, courtNotes } = req.body as {
+    approve?: boolean;
+    caseNumber?: string;
+    courtNotes?: string;
+  };
+
+  try {
+    const result = reviewCourtAccessRequest(store, session, {
+      requestId: req.params.requestId,
+      approve: Boolean(approve),
+      caseNumber,
+      courtNotes,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Unable to review request.' });
+  }
+});
+
+app.post('/api/vault/court-orders/:orderId/revoke', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'ARBITRATION_COURT' && session.role !== 'FOUNDER') {
+    res.status(403).json({ error: 'Only Internal Arbitration Court or Founder may revoke a Court Order.' });
+    return;
+  }
+  const { reason } = req.body as { reason?: string };
+  try {
+    const order = revokeCourtOrder(store, session, req.params.orderId, String(reason || ''));
+    res.json({ order });
+  } catch (err) {
+    res.status(404).json({ error: err instanceof Error ? err.message : 'Order not found.' });
+  }
+});
+
+// Append-only movement log — ZERO UPDATE or DELETE endpoints exist anywhere on this resource
+app.get('/api/vault/movement-log', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role === 'BOARD_MEMBER') {
+    const activeOrder = getActiveBoardCourtOrder(store, session.actorId);
+    if (
+      !activeOrder ||
+      (activeOrder.scope !== 'ALL_VAULT_RECORDS' && activeOrder.scope !== 'AI_AUDIT_LOGS')
+    ) {
+      res.status(403).json({
+        code: 'COURT_APPROVAL_REQUIRED',
+        error:
+          'Court Clearance Required (Scope: AI_AUDIT_LOGS or ALL_VAULT_RECORDS) before Board Members can read full internal movement logs.',
+      });
+      return;
+    }
+  }
+
+  const integrity = verifyMovementChain(store);
+  res.json({
+    integrity,
+    entries: [...store.internalMovementLog].reverse().slice(0, 200),
+    appendOnlyEnforced: true,
+  });
+});
+
+app.get('/api/vault/verify-integrity', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  const result = verifyMovementChain(store);
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: 'DILOS_CHAIN_VERIFIED',
+    targetResource: 'INTERNAL_MOVEMENT_LOG',
+    dilosStage: 'COLUMBO',
+    summary: `Verified SHA-256 chain integrity across ${result.totalEntries} record(s): ${
+      result.valid ? 'VALID' : `BROKEN AT SEQ ${result.brokenAtSeq}`
+    }.`,
+  });
+  res.json(result);
+});
+
+app.post('/api/vault/rotate-password', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'FOUNDER') {
+    res.status(403).json({ error: 'Only the Phase 1 Custodian / Founder may rotate role passwords.' });
+    return;
+  }
+  const { targetRole, newPasscode } = req.body as { targetRole?: VaultRole; newPasscode?: string };
+  const validRoles: VaultRole[] = ['FOUNDER', 'ARBITRATION_COURT', 'BOARD_MEMBER', 'AI_OVERSIGHT'];
+  if (!targetRole || !validRoles.includes(targetRole) || !newPasscode || newPasscode.length < 12) {
+    res.status(400).json({
+      error: 'Valid role and strong new passcode (minimum 12 characters) are required.',
+    });
+    return;
+  }
+  rotateVaultPasscode(store, session, { targetRole, newPasscode });
+  res.json({ ok: true, targetRole, rotatedAtUtc: new Date().toISOString() });
+});
+
+app.post('/api/vault/emergency-stop', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'FOUNDER' && session.role !== 'ARBITRATION_COURT') {
+    res.status(403).json({
+      error: 'Only Internal Arbitration Court or Phase 1 Custodian may trigger Emergency Stop.',
+    });
+    return;
+  }
+  const { active, reason } = req.body as { active?: boolean; reason?: string };
+  store.vaultSecurityState.emergencyStopActive = Boolean(active);
+  store.vaultSecurityState.emergencyStopReason = String(reason || '').trim();
+  store.vaultSecurityState.updatedByActorId = session.actorId;
+  store.vaultSecurityState.updatedAtUtc = new Date().toISOString();
+
+  recordMovement(store, {
+    actorId: session.actorId,
+    actorRole: session.role,
+    action: active ? 'EMERGENCY_STOP_ACTIVATED' : 'EMERGENCY_STOP_LIFTED',
+    targetResource: 'DILOS_PIPITO_GLOBAL_GATE',
+    dilosStage: 'PIPITO',
+    summary: active
+      ? `Activated Global DILOS Emergency Stop: ${store.vaultSecurityState.emergencyStopReason || 'Safety pause'}`
+      : 'Lifted Global DILOS Emergency Stop.',
+  });
+
+  res.json({
+    emergencyStopActive: store.vaultSecurityState.emergencyStopActive,
+    emergencyStopReason: store.vaultSecurityState.emergencyStopReason,
+  });
+});
+
+app.post('/api/vault/handover', requireVaultSession, (req: Request, res: Response) => {
+  const session = (req as Request & { vaultSession: PersistedVaultSession }).vaultSession;
+  if (session.role !== 'FOUNDER') {
+    res.status(403).json({ error: 'Only Phase 1 Custodian may execute the Board handover.' });
+    return;
+  }
+  const { boardIds } = req.body as { boardIds?: string[] };
+  try {
+    executeGovernanceBoardHandover(store, session, Array.isArray(boardIds) ? boardIds : []);
+    res.json({ governanceState: store.governanceState });
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Handover failed.' });
+  }
 });
 
 async function startServer() {

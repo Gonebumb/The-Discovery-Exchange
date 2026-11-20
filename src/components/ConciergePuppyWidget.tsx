@@ -94,6 +94,13 @@ const CONCIERGE_KNOWLEDGE_INDEX: GroundedQaAnswer[] = [
     citation: 'Q113–Q124 & Articles 9.5, 10.1, 10.5',
   },
   {
+    keywords: ['credit', 'union', 'ncua', '1000', '1,000', 'bank', 'phase 2'],
+    question: 'When does TDEX / DEXPA file to become its own Federal Credit Union?',
+    answer:
+      'Prior to 1,000 verified Owners, TDEX charges $0 fees and keeps all wallets at external licensed processors like PayPal. As soon as TDEX reaches 1,000 verified Owners, the Owner Board and Pushers formally file with the NCUA to charter our own federally insured, 100% Owner-governed Federal Credit Union (One Owner = One Vote, zero Wall Street bosses).',
+    citation: 'Q27, Q95 & FCU Charter Trigger',
+  },
+  {
     keywords: ['ledger', 'open the ledger', 'sha', 'hash', 'block', '22/22', 'audit', 'vault'],
     question: 'How does Open The Ledger (Channel #19) work?',
     answer:

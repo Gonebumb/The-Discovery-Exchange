@@ -5,6 +5,7 @@ import {
 } from './QuickBridgePreviewModal';
 
 interface HomepageWindowCardConfig extends Omit<HomepageWindowCardData, 'onOpenFullPage' | 'onOpenConstitution'> {
+  subtitle?: string;
   image: string;
   description: string;
   navButtonLabel: string;
@@ -42,66 +43,31 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
   {
     id: 'dexpa',
     title: 'Discovery Exchange Parents Alliance (DEXPA)',
-    image: '/src/assets/images/card_dexpa_owners_500_1794487605557.jpg',
+    subtitle: 'Bank Auctions 70/30 Program',
+    image: '/src/assets/images/dxpa_bank_auctions_temple_1794486688802.jpg',
     description:
-      'Parents and families pooling optional 25% Marketplace credits into 100% debt-free rental properties—one human Owner, one vote.',
+      'New to TDEX? DEXPA unites everyday families as equal Owners (1 Owner = 1 Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
     articleCitation: 'Articles 1, 4.1, 9, 10 & 11',
     quickReminder:
-      'Turns optional 25% Marketplace credits into shared, debt-free real estate silos where verified human Owners hold equal votes.',
+      'Unites everyday parents as equal Owners—turning everyday household trades into shared debt-free real estate, K–12 classroom awards, and our own Federal Credit Union at 1,000 Owners.',
     bridgeExplanation:
-      'Instead of corporate landlords or bank mortgages, participating families pool optional 25% Marketplace property credits into isolated 1,000-Nugget real estate silos governed on an equal One-Owner, One-Vote basis.',
+      'New to TDEX? DEXPA unites everyday families as equal Owners (1 Owner = 1 Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
     keyTakeaways: [
-      'One Verified Human Owner = One Vote in governance.',
-      'Each building is divided into 1,000 Nuggets (20 Grains per Nugget) inside an isolated legal silo.',
-      'Zero mortgages, zero liens, and full protection for family savings.',
+      'Why families unite: 1 Verified Human Owner = 1 Vote, zero corporate or Wall Street bosses.',
+      'Your own separate wallet ($0 TDEX fees): 25% Marketplace credits accumulate in your PayPal or licensed wallet until matched to seller-side escrow.',
+      'Debt-free rental homes: Clean net rent splits 70% to participating families and 30% to K–12 teacher & student awards.',
+      'At 1,000 verified Owners, we file with the NCUA to charter our own federally insured, 100% Owner-owned Federal Credit Union.',
     ],
     targetRouteLabel: 'Parents Alliance (Dexpa)',
     navButtonLabel: 'Parents Alliance (Dexpa)',
   },
   {
-    id: 'bank_auctions',
-    title: 'Bank Auctions 70/30 Program',
-    image: '/src/assets/images/dxpa_bank_auctions_temple_1794486688802.jpg',
-    description:
-      'Buying courthouse & bank auctions debt-free at 20%–30% below market—clean net rent splits 70% Owners / 30% Awards forever.',
-    articleCitation: 'Articles 9.4, 9.5, 10.5 & 11.3',
-    quickReminder:
-      'Walk the 20%–30% auction discount and 70/30 rental calculator inside our isolated property silos.',
-    bridgeExplanation:
-      'Properties are targeted 100% cash at 20%–30% below market appraisal. After taxes, insurance, repairs, and reserves, clean net rent splits 70% to Silo Owners and 30% to The National Discovery Awards.',
-    keyTakeaways: [
-      'Clean net distributable cash after property taxes, insurance, repairs, and reserves.',
-      'Isolated silo liability protection (Article 9.1): one building can never cross-collateralize another.',
-      'Permanent 70% Owners / 30% National Discovery Awards net rent split (Article 11.3).',
-    ],
-    targetRouteLabel: 'Auction & Silo Watch',
-    navButtonLabel: '17. Auction & Silo Watch',
-  },
-  {
-    id: 'brick_coin',
-    title: 'Discovery Brick Coin',
-    image: '/src/assets/images/card_brickcoin_space_earth_1794487607662.jpg',
-    description:
-      'Real-estate-backed value carrier capped forever at 100,000,000 units—unlocking liquidity without ever selling or mortgaging a home.',
-    articleCitation: 'Article 11, Article 14 & Schedule A',
-    quickReminder:
-      'Explore the 100M fixed cap, 95% / 3% / 1% / 1% pool schedule, and interactive vesting shield inside Brick$Coin.',
-    bridgeExplanation:
-      'Discovery Brick Coin (DBC) is strictly capped at 100,000,000 units, never issues ahead of recorded property deeds (zero presales), and gives zero extra governance votes.',
-    keyTakeaways: [
-      'Hard supply ceiling locked at 100,000,000 units (zero inflation, zero presales before deed recording).',
-      '95% Owner Community & Mission / 3% 50-Yr Contributors / 1% Founder / 1% Future AI Reserve.',
-      'Protected by Module 06 proportional vesting & 3-shard SHA-256 verification.',
-    ],
-    targetRouteLabel: 'Brick$Coin',
-    navButtonLabel: 'Brick$Coin',
-  },
-  {
     id: 'marketplace',
     title: 'Discovery Marketplace',
+    subtitle: '50/25/25 Program',
     image: '/src/assets/images/card_marketplace_trading_1794483101968.jpg',
     description:
-      'Walk a 50/25/25 household trade: 50% cash to seller, 25% seller property credit, and 25% buyer cashback—0% TDEX listing fee.',
+      'Turn everyday household items you no longer use into real estate ownership—without touching family savings. Whenever an item sells on our $0-fee Marketplace, your licensed payment processor (such as PayPal) automatically splits checkout three ways: 50% goes straight to the seller in immediate spending cash, 25% builds the seller’s separate property wallet, and 25% builds the buyer’s separate property wallet. Every purchase or sale moves your family closer to owning debt-free rental property while funding K–12 schools.',
     articleCitation: 'Article 12.1',
     quickReminder:
       'Try the interactive 50/25/25 garage-sale trade walkthrough and calculator—see the exact split step by step without charging a card.',
@@ -116,42 +82,24 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
     navButtonLabel: 'Free/Marketplace',
   },
   {
-    id: 'concierge_card',
-    title: '24/7 YourConcierge',
-    image: '/src/assets/images/mascot_concierge_puppy_1794483065529.jpg',
+    id: 'brick_coin',
+    title: 'Discovery Brick Coin',
+    subtitle: 'limited to only 100,000,000 units',
+    image: '/src/assets/images/card_brickcoin_space_earth_1794487607662.jpg',
     description:
-      'Instant, plain-language answers grounded strictly in our approved 150-Question Master Q&A Encyclopedia—with automatic student privacy protection.',
-    articleCitation: 'Articles 2.4, 7.1 & 8.4 (Q1–Q150)',
+      'Discovery Brick Coins (DBC) are strictly capped at 100,000,000 units forever and are never sold as speculative crypto. Instead, DBC rewards verified K–12 teacher and student breakthroughs and gives participating Owners a clean, transferable door out if life circumstances change—allowing families to transfer their recorded position without ever forcing the sale or mortgaging of the underlying community apartment buildings, which stay 100% debt-free and protected in trust.',
+    articleCitation: 'Article 11, Article 14 & Schedule A',
     quickReminder:
-      'Friendly 24/7 guide answering from 150 constitutional Q&As with zero hallucination and automatic PII privacy stripping.',
+      'Explore the 100M fixed cap, 95% / 3% / 1% / 1% pool schedule, and interactive vesting shield inside Brick$Coin.',
     bridgeExplanation:
-      'YourConcierge is Stage 1 of the DILOS pipeline: it strips emails, phone numbers, and zip codes before data leaves intake, and answers questions strictly from the approved Version 10.0 & Operating Laws encyclopedia without inventing rules.',
+      'Discovery Brick Coin (DBC) is strictly capped at 100,000,000 units, never issues ahead of recorded property deeds (zero presales), and gives zero extra governance votes.',
     keyTakeaways: [
-      'Strictly bounded to Q1–Q150, Constitution Version 10.0 & Operating Laws (never guesses or makes up policy).',
-      'Strips student and family PII into the air-gapped PII Vault (Article 8.4).',
-      'Cannot alter constitutional rules, move funds, or decide award winners (Article 7.2).',
+      'Hard supply ceiling locked at 100,000,000 units (zero inflation, zero presales before deed recording).',
+      '95% Owner Community & Mission / 3% 50-Yr Contributors / 1% Founder / 1% Future AI Reserve.',
+      'Protected by Module 06 proportional vesting & 3-shard SHA-256 verification.',
     ],
-    targetRouteLabel: '24/7 Concierge Q&A',
-    navButtonLabel: '24/7 Concierge Q&A',
-  },
-  {
-    id: 'open_chat',
-    title: 'Open Chat Window',
-    image: '/src/assets/images/card_open_chat_community_1794487611965.jpg',
-    description:
-      'Owners Chat Room (18+ Adults): Share honest feedback, spot blind spots, and debate the blueprint openly at the kitchen table.',
-    articleCitation: 'Articles 1.1, 6.4, 8.4 & 19.4',
-    quickReminder:
-      'Adults-only (18+) open discussion room with live polling and automatic email, phone, and zip code privacy masking.',
-    bridgeExplanation:
-      'Honest public criticism makes blueprints stronger. Step inside the open discussion room to test live polling, share blind spots, and watch Concierge automatically mask stray phone numbers or emails.',
-    keyTakeaways: [
-      'Open kitchen-table feedback for 18+ adult Owners and public school educators.',
-      'Automatic PII redaction hides phone numbers, emails, and zip codes on submit.',
-      'Chat discussions help improve ideas without altering formal rules without Owner votes.',
-    ],
-    targetRouteLabel: 'Open WTF/Chat Room',
-    navButtonLabel: 'Open WTF/Chat Room',
+    targetRouteLabel: 'Brick$Coin',
+    navButtonLabel: 'Brick$Coin',
   },
   {
     id: 'constitution',
@@ -249,6 +197,64 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
     targetRouteLabel: 'AI Pipito Internal Gatekeeping',
     navButtonLabel: 'AI Pipito Internal Gatekeeping',
     customRoute: 'pipito',
+  },
+  {
+    id: 'open_chat',
+    title: 'Open Chat Window',
+    image: '/src/assets/images/card_open_chat_community_1794487611965.jpg',
+    description:
+      'Owners Chat Room (18+ Adults): Share honest feedback, spot blind spots, and debate the blueprint openly at the kitchen table.',
+    articleCitation: 'Articles 1.1, 6.4, 8.4 & 19.4',
+    quickReminder:
+      'Adults-only (18+) open discussion room with live polling and automatic email, phone, and zip code privacy masking.',
+    bridgeExplanation:
+      'Honest public criticism makes blueprints stronger. Step inside the open discussion room to test live polling, share blind spots, and watch Concierge automatically mask stray phone numbers or emails.',
+    keyTakeaways: [
+      'Open kitchen-table feedback for 18+ adult Owners and public school educators.',
+      'Automatic PII redaction hides phone numbers, emails, and zip codes on submit.',
+      'Chat discussions help improve ideas without altering formal rules without Owner votes.',
+    ],
+    targetRouteLabel: 'Open WTF/Chat Room',
+    navButtonLabel: 'Open WTF/Chat Room',
+  },
+  {
+    id: 'bank_auctions',
+    title: 'Auction & Silo Watch',
+    subtitle: 'Live & Upcoming Bank Auctions',
+    image: '/src/assets/images/dxpa_live_online_auction_full_1794756924946.jpg',
+    description:
+      'Watch courthouse and bank-owned property auctions targeted debt-free at 20%–30% below market—and inspect every isolated 1,000-Nugget silo book openly.',
+    articleCitation: 'Articles 9.1, 9.4, 9.5 & 10.5',
+    quickReminder:
+      'Walk the 20%–30% auction discount and 70/30 rental calculator inside our isolated property silos.',
+    bridgeExplanation:
+      'Properties are targeted 100% cash at 20%–30% below market appraisal. After taxes, insurance, repairs, and reserves, clean net rent splits 70% to Silo Owners and 30% to The National Discovery Awards.',
+    keyTakeaways: [
+      'Clean net distributable cash after property taxes, insurance, repairs, and reserves.',
+      'Isolated silo liability protection (Article 9.1): one building can never cross-collateralize another.',
+      'Permanent 70% Owners / 30% National Discovery Awards net rent split (Article 11.3).',
+    ],
+    targetRouteLabel: 'Auction & Silo Watch',
+    navButtonLabel: '17. Auction & Silo Watch',
+  },
+  {
+    id: 'concierge_card',
+    title: '24/7 YourConcierge',
+    image: '/src/assets/images/mascot_concierge_puppy_1794483065529.jpg',
+    description:
+      'Instant, plain-language answers grounded strictly in our approved 150-Question Master Q&A Encyclopedia—with automatic student privacy protection.',
+    articleCitation: 'Articles 2.4, 7.1 & 8.4 (Q1–Q150)',
+    quickReminder:
+      'Friendly 24/7 guide answering from 150 constitutional Q&As with zero hallucination and automatic PII privacy stripping.',
+    bridgeExplanation:
+      'YourConcierge is Stage 1 of the DILOS pipeline: it strips emails, phone numbers, and zip codes before data leaves intake, and answers questions strictly from the approved Version 10.0 & Operating Laws encyclopedia without inventing rules.',
+    keyTakeaways: [
+      'Strictly bounded to Q1–Q150, Constitution Version 10.0 & Operating Laws (never guesses or makes up policy).',
+      'Strips student and family PII into the air-gapped PII Vault (Article 8.4).',
+      'Cannot alter constitutional rules, move funds, or decide award winners (Article 7.2).',
+    ],
+    targetRouteLabel: '24/7 Concierge Q&A',
+    navButtonLabel: '24/7 Concierge Q&A',
   },
   {
     id: 'discovery_studio',
@@ -366,135 +372,206 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
     });
   };
 
+  const rowOneCards = FIFTEEN_WINDOW_CARDS.slice(0, 3);
+  const rowTwoCards = FIFTEEN_WINDOW_CARDS.slice(3, 6);
+  const rowThreeCards = FIFTEEN_WINDOW_CARDS.slice(6, 9);
+  const remainingCards = FIFTEEN_WINDOW_CARDS.slice(9);
+
+  const renderCard = (card: HomepageWindowCardConfig) => (
+    <article
+      key={card.id}
+      className="bg-white border-[3px] border-[#071936] rounded-[30px] overflow-hidden flex flex-col text-center shadow-xs hover:shadow-xl transition-shadow"
+    >
+      {/* Navy Card Header */}
+      <div className="bg-[#071936] text-white px-4 py-3.5 min-h-[76px] md:min-h-[84px] flex flex-col items-center justify-center border-b-2 border-[#dfa62a]/70">
+        <h3 className="font-serif text-[clamp(0.95rem,1.22vw,1.15rem)] font-bold leading-snug text-white">
+          {card.title}
+        </h3>
+        {card.subtitle && (
+          <p className="font-serif text-[clamp(0.86rem,1.08vw,1.02rem)] font-bold leading-snug text-[#fcd34d] mt-0.5">
+            {card.subtitle}
+          </p>
+        )}
+      </div>
+
+      {/* 16:9 Window Frame */}
+      <div className="px-[clamp(0.85rem,1.3vw,1.25rem)] pt-[clamp(0.85rem,1.3vw,1.25rem)] pb-3">
+        <div
+          onClick={() => openBridgeModal(card)}
+          className="relative aspect-[16/9] w-full rounded-[20px] border-[2.5px] border-[#071936] overflow-hidden bg-[#071936] cursor-pointer group"
+        >
+          {card.id === 'bank_auctions' ? (
+            <>
+              {AUCTION_SLIDES.map((slide, idx) => (
+                <img
+                  key={slide.src}
+                  src={slide.src}
+                  alt={slide.alt}
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-700 ${
+                    idx === 1 ? 'scale-[1.07] origin-[50%_62%]' : ''
+                  } ${idx === auctionIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                />
+              ))}
+            </>
+          ) : card.id === 'constitution' ? (
+            <>
+              {CONSTITUTION_SLIDES.map((slide, idx) => (
+                <img
+                  key={slide.src}
+                  src={slide.src}
+                  alt={slide.alt}
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-700 ${
+                    idx === constitutionIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  }`}
+                />
+              ))}
+            </>
+          ) : card.id === 'brick_coin' ? (
+            <div className="relative w-full h-full overflow-hidden bg-[#020714]">
+              <img
+                src="/assets/home/brickcoin_space_bg.jpg"
+                alt="You Know Bitcoin. Now Meet Discovery Brick Coin. Backed Up by Real Estate."
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-fill block"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute right-[1%] top-[4%] bottom-[4%] w-[46%] rounded-full bg-[#092045]/45 blur-xl"
+              />
+              <div className="brickcoin-stage absolute right-[3%] top-[7%] bottom-[7%] aspect-square flex items-center justify-center">
+                <div className="brickcoin-spinner relative w-full h-full rounded-full drop-shadow-[0_0_18px_rgba(252,211,77,0.45)]">
+                  <img
+                    src="/assets/home/brickcoin_front_clean.webp"
+                    alt="Discovery Brick Coin — Local Districts & National Prizes (1776–2026)"
+                    referrerPolicy="no-referrer"
+                    className="brickcoin-face absolute inset-0 w-full h-full object-contain rounded-full"
+                  />
+                  <img
+                    src="/assets/home/brickcoin_back_clean.webp"
+                    alt="Discovery Brick Coin — DB Real Estate Backed Reserve"
+                    referrerPolicy="no-referrer"
+                    className="brickcoin-face brickcoin-face-back absolute inset-0 w-full h-full object-contain rounded-full"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : card.id === 'concierge_card' ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              poster={card.image}
+              onLoadedMetadata={(e) => {
+                e.currentTarget.defaultPlaybackRate = 0.5;
+                e.currentTarget.playbackRate = 0.5;
+              }}
+              onPlay={(e) => {
+                e.currentTarget.defaultPlaybackRate = 0.5;
+                e.currentTarget.playbackRate = 0.5;
+              }}
+              className="w-full h-full object-cover object-center scale-[1.03] block"
+            >
+              <source
+                src="/assets/aistudio/AaHfy34J7-3l5-RqVYuesw-AaHfy34JzpzrhfpQvhfGnA_87ec6287.mp4"
+                type="video/mp4"
+              />
+            </video>
+          ) : (
+            <img
+              src={card.image}
+              alt={card.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-fill group-hover:scale-[1.02] transition-transform duration-300"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Body & Read More CTA */}
+      <div className="px-6 pt-2 pb-6 flex-1 flex flex-col justify-between">
+        <p className="text-[0.98rem] sm:text-[1.02rem] leading-[1.6] text-[#0f172a] mb-5">
+          {card.description}
+        </p>
+        <div className="flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => openBridgeModal(card)}
+            className="bg-[#071936] hover:bg-[#1e3a8a] text-white border border-[#dfa62a]/60 font-sans font-bold text-sm px-8 py-2.5 rounded-[6px] transition-colors cursor-pointer"
+          >
+            read more
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
-        {FIFTEEN_WINDOW_CARDS.map((card) => (
-          <article
-            key={card.id}
-            className="bg-white border-[3px] border-[#071936] rounded-[30px] overflow-hidden flex flex-col text-center shadow-xs hover:shadow-xl transition-shadow"
-          >
-            {/* Navy Card Header */}
-            <div className="bg-[#071936] text-white px-4 py-3.5 min-h-[64px] md:min-h-[70px] flex items-center justify-center border-b-2 border-[#dfa62a]/70">
-              <h3 className="font-serif text-[clamp(0.95rem,1.28vw,1.22rem)] font-bold leading-snug text-white">
-                {card.title}
-              </h3>
-            </div>
+        {rowOneCards.map(renderCard)}
+      </div>
 
-            {/* 16:9 Window Frame */}
-            <div className="px-[clamp(0.85rem,1.3vw,1.25rem)] pt-[clamp(0.85rem,1.3vw,1.25rem)] pb-3">
-              <div
-                onClick={() => openBridgeModal(card)}
-                className="relative aspect-[16/9] w-full rounded-[20px] border-[2.5px] border-[#071936] overflow-hidden bg-[#071936] cursor-pointer group"
-              >
-                {card.id === 'bank_auctions' ? (
-                  <>
-                    {AUCTION_SLIDES.map((slide, idx) => (
-                      <img
-                        key={slide.src}
-                        src={slide.src}
-                        alt={slide.alt}
-                        referrerPolicy="no-referrer"
-                        className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-700 ${
-                          idx === 1 ? 'scale-[1.07] origin-[50%_62%]' : ''
-                        } ${idx === auctionIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-                      />
-                    ))}
-                  </>
-                ) : card.id === 'constitution' ? (
-                  <>
-                    {CONSTITUTION_SLIDES.map((slide, idx) => (
-                      <img
-                        key={slide.src}
-                        src={slide.src}
-                        alt={slide.alt}
-                        referrerPolicy="no-referrer"
-                        className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-700 ${
-                          idx === constitutionIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                        }`}
-                      />
-                    ))}
-                  </>
-                ) : card.id === 'brick_coin' ? (
-                  <div className="relative w-full h-full overflow-hidden bg-[#020714]">
-                    <img
-                      src="/assets/home/brickcoin_space_bg.jpg"
-                      alt="You Know Bitcoin. Now Meet Discovery Brick Coin. Backed Up by Real Estate."
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-fill block"
-                    />
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute right-[1%] top-[4%] bottom-[4%] w-[46%] rounded-full bg-[#092045]/45 blur-xl"
-                    />
-                    <div className="brickcoin-stage absolute right-[3%] top-[7%] bottom-[7%] aspect-square flex items-center justify-center">
-                      <div className="brickcoin-spinner relative w-full h-full rounded-full drop-shadow-[0_0_18px_rgba(252,211,77,0.45)]">
-                        <img
-                          src="/assets/home/brickcoin_front_clean.webp"
-                          alt="Discovery Brick Coin — Local Districts & National Prizes (1776–2026)"
-                          referrerPolicy="no-referrer"
-                          className="brickcoin-face absolute inset-0 w-full h-full object-contain rounded-full"
-                        />
-                        <img
-                          src="/assets/home/brickcoin_back_clean.webp"
-                          alt="Discovery Brick Coin — DB Real Estate Backed Reserve"
-                          referrerPolicy="no-referrer"
-                          className="brickcoin-face brickcoin-face-back absolute inset-0 w-full h-full object-contain rounded-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : card.id === 'concierge_card' ? (
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    poster={card.image}
-                    onLoadedMetadata={(e) => {
-                      e.currentTarget.defaultPlaybackRate = 0.5;
-                      e.currentTarget.playbackRate = 0.5;
-                    }}
-                    onPlay={(e) => {
-                      e.currentTarget.defaultPlaybackRate = 0.5;
-                      e.currentTarget.playbackRate = 0.5;
-                    }}
-                    className="w-full h-full object-cover object-center scale-[1.03] block"
-                  >
-                    <source
-                      src="/assets/aistudio/AaHfy34J7-3l5-RqVYuesw-AaHfy34JzpzrhfpQvhfGnA_87ec6287.mp4"
-                      type="video/mp4"
-                    />
-                  </video>
-                ) : (
-                  <img
-                    src={card.image}
-                    alt={card.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-fill group-hover:scale-[1.02] transition-transform duration-300"
-                  />
-                )}
-              </div>
-            </div>
+      {/* Navy Governance Introduction Banner above Row 2 */}
+      <div className="-mx-4 sm:-mx-6 bg-[#071936] text-white py-5 px-4 sm:px-6 text-center my-7 shadow-xs">
+        <div className="max-w-5xl mx-auto space-y-1.5 text-center">
+          <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.58rem] font-bold tracking-wide text-white">
+            The Governance of The Discovery Exchange
+          </h2>
+          <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
+            This Is How We Are Governed — 1 Human Owner = 1 Vote
+          </p>
+          <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-4xl mx-auto">
+            No permanent corporate bosses and no backroom control—everyday parent Owners govern
+            through our searchable Constitution, a randomly drawn 30-person Mom and Pop Board, and
+            a 12-person out-of-state Owner Arbitration Jury.
+          </p>
+        </div>
+      </div>
 
-            {/* Body & Read More CTA */}
-            <div className="px-6 pt-2 pb-6 flex-1 flex flex-col justify-between">
-              <p className="text-[0.98rem] sm:text-[1.02rem] leading-[1.6] text-[#0f172a] mb-5">
-                {card.description}
-              </p>
-              <div className="flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => openBridgeModal(card)}
-                  className="bg-[#071936] hover:bg-[#1e3a8a] text-white border border-[#dfa62a]/60 font-sans font-bold text-sm px-8 py-2.5 rounded-[6px] transition-colors cursor-pointer"
-                >
-                  read more
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+        {rowTwoCards.map(renderCard)}
+      </div>
+
+      {/* Navy Safety & Security Protocols Introduction Banner above Row 3 */}
+      <div className="-mx-4 sm:-mx-6 bg-[#071936] text-white py-5 px-4 sm:px-6 text-center my-7 shadow-xs">
+        <div className="max-w-5xl mx-auto space-y-1.5 text-center">
+          <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.58rem] font-bold tracking-wide text-white">
+            Safety &amp; Security Protocols of The Discovery Exchange
+          </h2>
+          <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
+            Independent AI Auditing, Constitutional Gatekeeping &amp; Open Kitchen-Table Oversight
+          </p>
+          <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-4xl mx-auto">
+            Every dollar, math split, and privacy safeguard is checked around the clock—AI Columbo
+            audits the books, AI Pipito enforces fail-closed constitutional gatekeeping, and our Open
+            Chat Room keeps public review wide open.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+        {rowThreeCards.map(renderCard)}
+      </div>
+
+      {/* Compact Navy Introduction Banner above the Last Six Windows */}
+      <div className="-mx-4 sm:-mx-6 bg-[#071936] text-white py-3.5 px-4 sm:px-6 text-center my-6 shadow-xs">
+        <div className="max-w-5xl mx-auto space-y-0.5 text-center">
+          <h2 className="font-serif text-lg sm:text-xl font-bold tracking-wide text-white">
+            Public Schools, Auctions &amp; Community Support
+          </h2>
+          <p className="text-xs sm:text-sm text-[#fcd34d] font-semibold">
+            Live auctions, 24/7 Concierge Q&amp;A, student showcases, school district awards, and
+            classroom support.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+        {remainingCards.map(renderCard)}
       </div>
 
       <QuickBridgePreviewModal

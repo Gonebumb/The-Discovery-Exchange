@@ -226,10 +226,10 @@ const MASTER_QA_150: QaEntry[] = [
   {
     number: 27,
     section: '3. The 50 / 25 / 25 Marketplace Engine (Q23–Q32)',
-    question: 'How are marketplace payments processed safely?',
+    question: 'How are marketplace payments processed safely before and after 1,000 verified Owners?',
     answer:
-      'Under Article 12.3, all payments flow through properly authorized, regulated payment processors with clear seller/buyer records, cancellation rules, refund tracking, and financial-crime controls. Personal cash apps or informal commingled accounts are strictly prohibited (Article 10.1).',
-    citation: 'Articles 10.1 & 12.3',
+      'Under Article 12.3 and the Zero-Money-Handling Rule, prior to reaching 1,000 verified Owners TDEX charges $0 fees and never holds or touches funds—all balances stay in your own licensed external payment processor wallets (like PayPal) and fund seller-side escrow directly. As soon as TDEX reaches 1,000 verified Owners, the Owner Board and Pushers formally file charter documents with the National Credit Union Administration (NCUA) to transition into our own federally insured, 100% Owner-owned Federal Credit Union with zero Wall Street bosses.',
+    citation: 'Articles 10.1, 12.3 & FCU Milestone',
   },
   {
     number: 28,
@@ -784,10 +784,10 @@ const MASTER_QA_150: QaEntry[] = [
   {
     number: 95,
     section: '10. Global Replication & Getting Involved (Q92–Q100)',
-    question: 'How can a parent or working-class family get involved?',
+    question: 'How can a parent or working-class family get involved, and what happens at 1,000 verified Owners?',
     answer:
-      'Parents can participate as Owners—supporting local teachers and students, participating in the 50/25/25 Marketplace once active, serving on random Owner Boards or Review Juries, and helping spread the blueprint in their community.',
-    citation: 'Articles 1.1, 5 & 12',
+      'Parents can participate as Owners (1 Human = 1 Vote)—supporting local teachers and students, using external licensed wallets during Phase 1 ($0 fees, zero money handled by TDEX), and serving on random Owner Boards or Review Juries. Under our Phase 2 Credit Union Roadmap, as soon as The Discovery Exchange Parents Alliance (DEXPA) reaches 1,000 verified Owners, TDEX files with the NCUA to charter its own federally insured, 100% Owner-governed Federal Credit Union—bringing Owner wallets and escrow services under our own cooperative roof with zero Wall Street bosses.',
+    citation: 'Articles 1.1, 5, 12 & NCUA Milestone',
   },
   {
     number: 96,

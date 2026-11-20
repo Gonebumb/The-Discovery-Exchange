@@ -2,55 +2,409 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Pillar 4.1: Global Safety Net (Default Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // GLOBAL HELPER PRIMITIVES
+    // =========================================================================
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(ownerUid) {
-      return isSignedIn() && request.auth.uid == ownerUid;
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
     }
 
-    // 1. IMMUTABLE CONSTITUTIONAL ARCHIVE (Read-only public blueprint, zero client writes)
-    match /immutable_charter_archive/{docId} {
-      allow read: if true;
-      allow write: if false;
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // 2. APPEND-ONLY PUBLIC LEDGER (Article 8.3: Never updated or deleted)
-    match /append_only_ledger/{eventId} {
-      allow read: if true;
-      allow create: if false; // Written exclusively by verified DILOS server backend
+    function isBootstrappedFounder() {
+      return isEmailVerified() && request.auth.token.email == 'petrossianbobby@gmail.com';
+    }
+
+    function hasRoleDoc(roleName) {
+      return isEmailVerified()
+        && exists(/databases/$(database)/documents/vault_roles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/vault_roles/$(request.auth.uid)).data.role == roleName
+        && get(/databases/$(database)/documents/vault_roles/$(request.auth.uid)).data.active == true;
+    }
+
+    function isFounder() {
+      return isBootstrappedFounder() || hasRoleDoc('FOUNDER');
+    }
+
+    function isCourtJudge() {
+      return hasRoleDoc('ARBITRATION_COURT');
+    }
+
+    function isBoardMember() {
+      return hasRoleDoc('BOARD_MEMBER');
+    }
+
+    function isAiOversight() {
+      return hasRoleDoc('AI_OVERSIGHT');
+    }
+
+    function isCourtOrFounder() {
+      return isFounder() || isCourtJudge();
+    }
+
+    function hasActiveCourtClearanceFor(category) {
+      return exists(/databases/$(database)/documents/active_court_clearances/$(request.auth.uid))
+        && get(/databases/$(database)/documents/active_court_clearances/$(request.auth.uid)).data.status == 'APPROVED'
+        && get(/databases/$(database)/documents/active_court_clearances/$(request.auth.uid)).data.expiresAtMs > request.time.toMillis()
+        && (
+          get(/databases/$(database)/documents/active_court_clearances/$(request.auth.uid)).data.scope == 'ALL_VAULT_RECORDS'
+          || get(/databases/$(database)/documents/active_court_clearances/$(request.auth.uid)).data.scope == category
+        );
+    }
+
+    // =========================================================================
+    // ENTITY VALIDATION HELPERS (ANTI-UPDATE-GAP BLUEPRINTS)
+    // =========================================================================
+    function isValidVaultRole(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'displayName', 'active', 'assignedByUid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'role', 'displayName', 'active', 'assignedByUid', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.role in ['FOUNDER', 'ARBITRATION_COURT', 'BOARD_MEMBER', 'AI_OVERSIGHT']
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 120
+        && data.active is bool
+        && data.assignedByUid is string && data.assignedByUid.size() >= 2 && data.assignedByUid.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCourtAccessRequest(data) {
+      return data.keys().hasAll([
+          'requestId', 'requesterUid', 'requesterLabel', 'scope',
+          'justification', 'durationHours', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'requestId', 'requesterUid', 'requesterLabel', 'scope',
+          'justification', 'durationHours', 'status', 'courtOrderId',
+          'reviewedByUid', 'courtNotes', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.requestId)
+        && isValidId(data.requesterUid)
+        && data.requesterLabel is string && data.requesterLabel.size() >= 2 && data.requesterLabel.size() <= 120
+        && data.scope in ['FILINGS', 'PII_OVERSIGHT', 'AI_AUDIT_LOGS', 'ALL_VAULT_RECORDS']
+        && data.justification is string && data.justification.size() >= 10 && data.justification.size() <= 1000
+        && data.durationHours is int && data.durationHours >= 1 && data.durationHours <= 168
+        && data.status in ['PENDING', 'APPROVED', 'DENIED', 'REVOKED']
+        && (!('courtOrderId' in data) || (data.courtOrderId is string && data.courtOrderId.size() <= 64))
+        && (!('reviewedByUid' in data) || (data.reviewedByUid is string && data.reviewedByUid.size() <= 128))
+        && (!('courtNotes' in data) || (data.courtNotes is string && data.courtNotes.size() <= 1000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCourtClearanceOrder(data) {
+      return data.keys().hasAll([
+          'orderId', 'requestId', 'boardMemberUid', 'caseNumber', 'scope',
+          'status', 'issuedByCourtUid', 'sealHash', 'expiresAtMs', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'orderId', 'requestId', 'boardMemberUid', 'caseNumber', 'scope',
+          'status', 'issuedByCourtUid', 'sealHash', 'expiresAtMs', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.orderId)
+        && isValidId(data.requestId)
+        && isValidId(data.boardMemberUid)
+        && data.caseNumber is string && data.caseNumber.size() >= 4 && data.caseNumber.size() <= 64
+        && data.scope in ['FILINGS', 'PII_OVERSIGHT', 'AI_AUDIT_LOGS', 'ALL_VAULT_RECORDS']
+        && data.status in ['APPROVED', 'REVOKED', 'EXPIRED']
+        && isValidId(data.issuedByCourtUid)
+        && data.sealHash is string && data.sealHash.size() >= 32 && data.sealHash.size() <= 128
+        && data.expiresAtMs is int && data.expiresAtMs > 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVaultFiling(data) {
+      return data.keys().hasAll([
+          'filingId', 'category', 'title', 'classification',
+          'summary', 'dilosIntegrityHash', 'createdByUid', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'filingId', 'category', 'title', 'classification',
+          'summary', 'dilosIntegrityHash', 'createdByUid', 'createdAt'
+        ])
+        && isValidId(data.filingId)
+        && data.category in ['FILINGS', 'PII_OVERSIGHT', 'AI_AUDIT_LOGS', 'ESCROW_SAFEKEEPING']
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 200
+        && data.classification in ['BOARD_COURT_ONLY', 'FOUNDER_COURT_ONLY', 'DILOS_SEALED']
+        && data.summary is string && data.summary.size() >= 5 && data.summary.size() <= 4000
+        && data.dilosIntegrityHash is string && data.dilosIntegrityHash.size() >= 32 && data.dilosIntegrityHash.size() <= 128
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMovementRecord(data) {
+      return data.keys().hasAll([
+          'eventId', 'seq', 'actorUid', 'actorRole', 'action',
+          'targetResource', 'dilosStage', 'prevHash', 'currentHash', 'summary', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'eventId', 'seq', 'actorUid', 'actorRole', 'action',
+          'targetResource', 'courtOrderId', 'dilosStage', 'prevHash', 'currentHash', 'summary', 'createdAt'
+        ])
+        && isValidId(data.eventId)
+        && data.seq is int && data.seq >= 1
+        && data.actorUid is string && data.actorUid.size() >= 2 && data.actorUid.size() <= 128
+        && data.actorRole in ['FOUNDER', 'ARBITRATION_COURT', 'BOARD_MEMBER', 'AI_OVERSIGHT', 'DILOS_SYSTEM']
+        && data.action is string && data.action.size() >= 3 && data.action.size() <= 80
+        && data.targetResource is string && data.targetResource.size() >= 2 && data.targetResource.size() <= 200
+        && (!('courtOrderId' in data) || (data.courtOrderId is string && data.courtOrderId.size() <= 64))
+        && data.dilosStage in ['CONCIERGE', 'COLUMBO', 'PIPITO', 'HUMAN_COURT_WITNESS']
+        && data.prevHash is string && data.prevHash.size() == 64
+        && data.currentHash is string && data.currentHash.size() == 64
+        && data.summary is string && data.summary.size() >= 3 && data.summary.size() <= 1000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidOwnerProfile(data) {
+      return data.keys().hasAll([
+          'ownerUid', 'stateCode', 'votingWeight', 'isAdultVerified',
+          'accumulationBalanceCents', 'dbcBalance', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid', 'stateCode', 'votingWeight', 'isAdultVerified',
+          'accumulationBalanceCents', 'dbcBalance', 'createdAt'
+        ])
+        && isValidId(data.ownerUid)
+        && data.stateCode is string && data.stateCode.size() >= 2 && data.stateCode.size() <= 12
+        && data.votingWeight == 1
+        && data.isAdultVerified == true
+        && data.accumulationBalanceCents is int && data.accumulationBalanceCents >= 0
+        && data.dbcBalance is int && data.dbcBalance >= 0
+        && data.createdAt is timestamp;
+    }
+
+    function isValidEncryptedPiiRecord(data) {
+      return data.keys().hasAll(['ownerUid', 'fullName', 'guardianConsent', 'updatedAt'])
+        && data.keys().hasOnly(['ownerUid', 'fullName', 'contactHint', 'guardianConsent', 'updatedAt'])
+        && isValidId(data.ownerUid)
+        && data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 150
+        && (!('contactHint' in data) || (data.contactHint is string && data.contactHint.size() <= 200))
+        && data.guardianConsent is bool
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // 0. CONNECTION HEALTH CHECK DOC (Test Connection Read-Only)
+    // =========================================================================
+    match /test/connection {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    // =========================================================================
+    // 1. VAULT ROLES (Strictly Administered by Founder)
+    // =========================================================================
+    match /vault_roles/{roleUid} {
+      allow get: if isValidId(roleUid) && (isFounder() || (isEmailVerified() && request.auth.uid == roleUid));
+      allow list: if isBootstrappedFounder() || (isEmailVerified() && resource.data.uid == request.auth.uid);
+      allow create: if isValidId(roleUid)
+        && isFounder()
+        && isValidVaultRole(incoming())
+        && incoming().uid == roleUid
+        && incoming().assignedByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(roleUid)
+        && isFounder()
+        && isValidVaultRole(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'displayName', 'active', 'assignedByUid', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // 2. BOARD ACCESS REQUESTS (Reviewed Exclusively by Court or Founder)
+    // =========================================================================
+    match /court_access_requests/{requestId} {
+      allow get: if isValidId(requestId) && (
+        isCourtOrFounder()
+        || (isBoardMember() && existing().requesterUid == request.auth.uid)
+      );
+      allow list: if isBootstrappedFounder() || (isEmailVerified() && resource.data.requesterUid == request.auth.uid);
+      allow create: if isValidId(requestId)
+        && (isBoardMember() || isFounder())
+        && isValidCourtAccessRequest(incoming())
+        && incoming().requestId == requestId
+        && incoming().requesterUid == request.auth.uid
+        && incoming().status == 'PENDING'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(requestId)
+        && isCourtOrFounder()
+        && isValidCourtAccessRequest(incoming())
+        && existing().status == 'PENDING'
+        && incoming().status in ['APPROVED', 'DENIED', 'REVOKED']
+        && incoming().requestId == existing().requestId
+        && incoming().requesterUid == existing().requesterUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().reviewedByUid == request.auth.uid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'courtOrderId', 'reviewedByUid', 'courtNotes', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // 3. COURT CLEARANCE ORDERS (Issued & Revoked Only by Court or Founder)
+    // =========================================================================
+    match /court_orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        isCourtOrFounder()
+        || (isBoardMember() && existing().boardMemberUid == request.auth.uid)
+      );
+      allow list: if isBootstrappedFounder() || (isEmailVerified() && resource.data.boardMemberUid == request.auth.uid);
+      allow create: if isValidId(orderId)
+        && isCourtOrFounder()
+        && isValidCourtClearanceOrder(incoming())
+        && incoming().orderId == orderId
+        && incoming().issuedByCourtUid == request.auth.uid
+        && exists(/databases/$(database)/documents/court_access_requests/$(incoming().requestId))
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(orderId)
+        && isCourtOrFounder()
+        && isValidCourtClearanceOrder(incoming())
+        && existing().status == 'APPROVED'
+        && incoming().status in ['REVOKED', 'EXPIRED']
+        && incoming().orderId == existing().orderId
+        && incoming().requestId == existing().requestId
+        && incoming().boardMemberUid == existing().boardMemberUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /active_court_clearances/{boardMemberUid} {
+      allow get: if isValidId(boardMemberUid) && (
+        isCourtOrFounder()
+        || (isBoardMember() && request.auth.uid == boardMemberUid)
+      );
+      allow list: if false;
+      allow create, update: if isValidId(boardMemberUid)
+        && isCourtOrFounder()
+        && isValidCourtClearanceOrder(incoming())
+        && incoming().boardMemberUid == boardMemberUid
+        && incoming().issuedByCourtUid == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // 4. CONFIDENTIAL VAULT FILINGS (Board Requires Active Court Clearance!)
+    // =========================================================================
+    match /vault_filings/{filingId} {
+      allow get: if isValidId(filingId) && (
+        isFounder()
+        || isCourtJudge()
+        || isAiOversight()
+        || (isBoardMember() && hasActiveCourtClearanceFor(existing().category))
+      );
+      allow list: if isBootstrappedFounder();
+      allow create: if isValidId(filingId)
+        && (isFounder() || isCourtJudge() || isAiOversight())
+        && isValidVaultFiling(incoming())
+        && incoming().filingId == filingId
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time;
       allow update, delete: if false;
     }
 
-    // 3. ENCRYPTED PII VAULT (Article 8.4: Air-gapped from public & AI)
-    match /encrypted_pii_vault/{ownerUid} {
-      allow read, create, update: if isOwner(ownerUid);
-      allow delete: if false;
+    // =========================================================================
+    // 5. IMMUTABLE INTERNAL MOVEMENT LOG (Nothing Moves Without Recording)
+    // =========================================================================
+    match /internal_movement_log/{eventId} {
+      allow get: if isValidId(eventId) && (isFounder() || isCourtJudge() || isAiOversight());
+      allow list: if isBootstrappedFounder();
+      allow create: if isValidId(eventId)
+        && isEmailVerified()
+        && (isFounder() || isCourtJudge() || isBoardMember() || isAiOversight())
+        && isValidMovementRecord(incoming())
+        && incoming().eventId == eventId
+        && incoming().actorUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
     }
 
-    // 4. VERIFIED OWNERS PROFILE (Article 4.1: votingWeight locked to 1)
+    // =========================================================================
+    // 6. OWNER PROFILES, ENCRYPTED PII VAULT & PUBLIC ARCHIVES
+    // =========================================================================
     match /owners/{ownerUid} {
-      allow read: if isOwner(ownerUid);
-      allow create: if isOwner(ownerUid)
-        && request.resource.data.votingWeight == 1
-        && request.resource.data.isAdultVerified == true;
-      allow update: if isOwner(ownerUid)
-        && request.resource.data.votingWeight == resource.data.votingWeight
-        && request.resource.data.accumulationBalanceCents == resource.data.accumulationBalanceCents
-        && request.resource.data.dbcBalance == resource.data.dbcBalance;
+      allow get: if isValidId(ownerUid) && isEmailVerified() && (request.auth.uid == ownerUid || isFounder());
+      allow list: if isBootstrappedFounder();
+      allow create: if isValidId(ownerUid)
+        && isEmailVerified()
+        && request.auth.uid == ownerUid
+        && isValidOwnerProfile(incoming())
+        && incoming().ownerUid == ownerUid
+        && incoming().accumulationBalanceCents == 0
+        && incoming().dbcBalance == 0
+        && incoming().createdAt == request.time;
+      allow update: if false;
       allow delete: if false;
     }
 
-    // 5. ISOLATED PROPERTY SILOS (Article 9.1: Publicly auditable silo books)
-    match /property_silos/{siloId} {
-      allow read: if true;
+    match /encrypted_pii_vault/{ownerUid} {
+      allow get: if isValidId(ownerUid) && isEmailVerified() && (request.auth.uid == ownerUid || isCourtOrFounder());
+      allow list: if false;
+      allow create: if isValidId(ownerUid)
+        && isEmailVerified()
+        && request.auth.uid == ownerUid
+        && isValidEncryptedPiiRecord(incoming())
+        && incoming().ownerUid == ownerUid
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(ownerUid)
+        && isEmailVerified()
+        && request.auth.uid == ownerUid
+        && isValidEncryptedPiiRecord(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'contactHint', 'guardianConsent', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /immutable_charter_archive/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if true;
       allow write: if false;
     }
 
-    // 6. ANONYMIZED NDA SUBMISSIONS (Article 13.2: Stripped of PII)
+    match /append_only_ledger/{eventId} {
+      allow get: if isValidId(eventId);
+      allow list: if true;
+      allow write: if false;
+    }
+
+    match /property_silos/{siloId} {
+      allow get: if isValidId(siloId);
+      allow list: if true;
+      allow write: if false;
+    }
+
     match /nda_submissions_blind/{trackingId} {
-      allow read: if true;
+      allow get: if isValidId(trackingId);
+      allow list: if true;
       allow write: if false;
     }
   }

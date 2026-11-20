@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { BookOpen, Search, ShieldCheck } from 'lucide-react';
+import { BookOpen, Download, Search, ShieldCheck } from 'lucide-react';
+import { downloadConstitutionV10Pdf } from '../utils/constitutionPdf';
 
 interface ArticleBlock {
   number: string;
@@ -36,7 +37,7 @@ const CONSTITUTION_V10_ARTICLES: ArticleBlock[] = [
     tier: 'Operational Charter',
     sections: [
       '2.1 Unified Pre-Launch Identity: The Discovery Exchange (TheDiscoveryExchange.com) and National Discovery Awards (NationalDiscoveryAwards.com) work together alongside the Discovery Exchange Parents Alliance (Dexpa).',
-      '2.2 Legal Alignment Before Live Money: Before any live custody of funds, property acquisitions, prize pools, or DBC issuance begins, required entity, nonprofit/fiscal, charitable, securities, and property-management approvals must be secured in applicable jurisdictions.',
+      '2.2 Non-Custodial Software Operation & 1,000-Owner Federal Credit Union Charter: The Discovery Exchange (TDEX) charges $0 in fees or commissions and NEVER holds, pools, collects, or takes custody of any user money—operating strictly as a non-custodial software matching platform while families accumulate balances inside their own external licensed wallets (such as PayPal) and fund licensed seller-side escrow directly. Upon reaching 1,000 verified Owners, the Owner Board and Pushers shall file charter documents with the National Credit Union Administration (NCUA) to establish a federally insured, 100% Owner-owned Federal Credit Union.',
       '2.3 Order of Authority: Mandatory law and binding court orders control first; then filed articles and valid trust instruments; then this Constitution; then bylaws and Owner Board policies; then manuals, webpages, and AI outputs.',
       '2.4 No Implied Authority: Authority must be expressly granted in a signed, dated resolution or governing instrument.',
       '2.5 Version Control: Authorized versions bear a straight numeric identifier (Version 10.0) with adoption date, approving vote, signer, and SHA-256 digest.',
@@ -118,7 +119,7 @@ const CONSTITUTION_V10_ARTICLES: ArticleBlock[] = [
     tier: '75% Constitutional Bedrock (Article 19.2)',
     sections: [
       '9.1 One Named Legal Owner (Isolated Silos): Each property is titled to one identified legal entity holding isolated silo title, keeping liabilities and vacancies of one building strictly separated from all other buildings.',
-      '9.2 Written Rights Before Money: Publish and sign governing purchase, title, distribution, tax, insurance, and exit documents before accepting property funds.',
+      '9.2 Written Rights Before Escrow Closing: Publish and sign the governing purchase, isolated silo title, distribution, tax, insurance, and exit documents before buyers transfer funds from their external licensed wallets into licensed seller-side escrow.',
       '9.3 No False Beneficial Ownership: A ledger entry or DBC alone does not convey legal title without a valid signed property instrument.',
       '9.4 No Property Purchase Without Gates: Title, zoning, appraisal, inspection, insurance, full funds in hand, reserves, and legal clearance required.',
       '9.5 Acquisition Discount Objective: Targeting up to 30% below supported market estimate is an objective, never a reason to skip due diligence.',
@@ -163,7 +164,7 @@ const CONSTITUTION_V10_ARTICLES: ArticleBlock[] = [
     title: 'Prizes and Student/Teacher Protections',
     tier: '75% Constitutional Bedrock (Article 19.2)',
     sections: [
-      '13.1 Written Prize Rules & Funded-First Mandate: Stepping-stone pools ($250k/$500k/$1M) and target tiers ($1M Local District, $2.5M State, $10M National — goal to reach by 2035) open only once 100% of cash is verified in escrow.',
+      '13.1 Written Prize Rules & Funded-First Mandate: Stepping-stone pools ($250k / $500k / $1M) and target tiers ($1M Local District, $2.5M State, $10M National — goal to reach by 2035) open only once 100% of cash is verified in escrow.',
       '13.2 Student & Teacher Safeguarding: Written parental/guardian consent, privacy redaction, and protected student education trusts/529s safeguard winning public school students and mentoring teachers.',
     ],
   },
@@ -211,9 +212,19 @@ export const ConstitutionPage: React.FC = () => {
             <BookOpen className="w-4 h-4" />
             <span>Open Working Draft &bull; Master Charter Version 10.0 (Straight Numeric Version)</span>
           </span>
-          <span className="px-3 py-1 bg-amber-400/15 border border-[#dfa62a]/60 text-[#dfa62a] text-xs font-bold rounded">
-            Charter v10.0 &bull; Open Book
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-3 py-1 bg-amber-400/15 border border-[#dfa62a]/60 text-[#dfa62a] text-xs font-bold rounded">
+              Charter v10.0 &bull; Open Book
+            </span>
+            <button
+              type="button"
+              onClick={() => downloadConstitutionV10Pdf(CONSTITUTION_V10_ARTICLES)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#dfa62a] hover:bg-[#eab845] text-[#081d38] text-xs font-bold cursor-pointer transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Charter PDF</span>
+            </button>
+          </div>
         </div>
 
         <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">

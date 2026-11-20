@@ -27,10 +27,10 @@ export const ParentsAllianceDexpaPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pt-1">
           <div className="md:col-span-7 space-y-3">
             <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
-              The Discovery Exchange Parents Alliance (DEXPA) — Debt-Free Property Silos
+              The Discovery Exchange Parents Alliance (DEXPA) — Why Parents Are Uniting
             </h1>
             <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
-              DEXPA lets participating families pool 25% marketplace property credits into <strong>100% debt-free, income-producing residential real estate</strong> governed on an equal One-Owner, One-Vote basis—defending working family savings from inflation forever.
+              Working families cannot beat inflation, high rent, and big banks alone. <strong>DEXPA</strong> unites everyday parents as equal Owners (One Owner = One Vote, zero corporate bosses) so families can turn ordinary neighborhood buying and selling into <strong>100% debt-free, income-producing homes</strong>—shielding family savings, funding public school classrooms, and filing to launch our own <strong>100% Owner-owned Federal Credit Union</strong> as soon as 1,000 Owners unite.
             </p>
           </div>
           <div className="md:col-span-5">
@@ -57,6 +57,33 @@ export const ParentsAllianceDexpaPage: React.FC = () => {
         <div>
           The Discovery Exchange (TDEX) <strong>NEVER</strong> holds, pools, collects, or touches any money. Families can begin setting up and building their own segregated property-accumulation balances inside their own licensed payment processor wallets (such as PayPal or an authorized financial partner) right away. When TDEX matches a debt-free property to buyers, TDEX opens a licensed third-party escrow directly on the seller’s side and gives buyers a set window to fund that seller-side escrow straight from their own regulated wallets.
         </div>
+      </div>
+
+      {/* 1,000-Owner Federal Credit Union Charter Milestone */}
+      <div className="bg-amber-50 border-2 border-[#dfa62a] rounded-xl p-5 sm:p-6 space-y-2 text-[#081d38] shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-serif text-lg sm:text-xl font-bold text-[#081d38]">
+            1,000-Owner Milestone: Filing to Become Our Own Federal Credit Union
+          </h2>
+          <span className="px-3 py-1 rounded-lg bg-[#081d38] text-[#fcd34d] text-xs font-bold font-mono">
+            FCU_CHARTER_ELIGIBLE @ 1,000 Owners
+          </span>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
+          <strong>Phase 1 (&lt; 1,000 Owners):</strong> Prior to reaching 1,000 verified Owners,
+          TDEX charges <strong>$0 fees</strong> and never holds or touches any money—all family
+          balances remain in external licensed payment processors (such as PayPal) and fund
+          seller-side escrow directly.
+        </p>
+        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
+          <strong>Phase 2 (1,000+ Verified Owners):</strong> As soon as the Discovery Exchange
+          Parents Alliance (DEXPA) reaches <strong>1,000 verified Owners</strong>, the Owner Board
+          and Pushers will formally file charter documents with the{' '}
+          <strong>National Credit Union Administration (NCUA)</strong> to establish our own
+          100% Owner-governed <strong>Federal Credit Union</strong>—preserving{' '}
+          <em>One Owner = One Vote</em>, eliminating Wall Street middlemen, and bringing Owner
+          wallets and property escrows under our own federally insured cooperative roof.
+        </p>
       </div>
 
       {/* Interactive 1,000-Nugget Silo & 70/30 Rent Calculator */}

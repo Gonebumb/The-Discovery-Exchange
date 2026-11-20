@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FolderLock, Pause, Play, RefreshCw } from 'lucide-react';
+import { PrivateVaultPortal } from '../components/PrivateVaultPortal';
 
 interface RotatingBoardScene {
   src: string;
@@ -57,6 +58,7 @@ export const MomPopBoardPage: React.FC = () => {
   const [drawnSeats, setDrawnSeats] = useState<string[]>(SAMPLE_OWNER_POOL.slice(0, 6));
   const [pairIndex, setPairIndex] = useState<number>(0);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(true);
+  const [showVaultGate, setShowVaultGate] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isAutoRotating) return;
@@ -218,6 +220,35 @@ export const MomPopBoardPage: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Closed Internal Vault & Audit Log (Custodian, Court & Board Only) */}
+      <div className="bg-[#081d38] text-white border-2 border-[#dfa62a] rounded-2xl p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#dfa62a]">
+              <FolderLock className="w-4 h-4" />
+              <span>DILOS v2 Closed Governance Vault</span>
+            </div>
+            <h3 className="font-serif text-xl font-bold text-white">
+              Internal Vault &amp; Audit Log (Custodian, Arbitration Court &amp; Board Only)
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-200 max-w-3xl">
+              Strictly closed to the public. Board Directors must request and obtain a signed
+              Internal Arbitration Court Clearance Order before viewing Vault filings.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowVaultGate((prev) => !prev)}
+            className="px-5 py-2.5 rounded-xl bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] text-xs font-bold inline-flex items-center gap-2 cursor-pointer whitespace-nowrap"
+          >
+            <FolderLock className="w-4 h-4" />
+            <span>{showVaultGate ? 'Close Vault Gate' : 'Internal Vault & Audit Log'}</span>
+          </button>
+        </div>
+
+        {showVaultGate && <PrivateVaultPortal embedded />}
       </div>
     </div>
   );

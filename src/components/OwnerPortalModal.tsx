@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   CheckCircle2,
   Coins,
+  FolderLock,
   Lock,
   LogOut,
   Receipt,
@@ -10,6 +11,7 @@ import {
   UserCheck,
   Wallet,
 } from 'lucide-react';
+import { PrivateVaultPortal } from './PrivateVaultPortal';
 
 interface TradeReceiptSummary {
   receiptId: string;
@@ -46,6 +48,7 @@ export const OwnerPortalPage: React.FC = () => {
   const [sessionOwner, setSessionOwner] = useState<OwnerSession | null>(null);
   const [receiptId, setReceiptId] = useState<string | null>(null);
   const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
+  const [showVaultLogin, setShowVaultLogin] = useState(false);
 
   const loadWalletSession = useCallback(async (token: string) => {
     setIsRefreshingWallet(true);
@@ -402,6 +405,35 @@ export const OwnerPortalPage: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Restricted Internal Vault & Audit Log Gate inside Owner Log In Area */}
+      <div className="bg-slate-950 text-white border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#dfa62a] inline-flex items-center gap-1.5">
+              <FolderLock className="w-4 h-4" />
+              <span>Authorized Governance Officers Only</span>
+            </div>
+            <h3 className="font-serif text-lg font-bold text-white">
+              Internal Vault &amp; Audit Log
+            </h3>
+            <p className="text-xs text-slate-300">
+              Restricted portal for Phase 1 Custodian, Internal Arbitration Court, Board Directors
+              (with Court Clearance), and AI Oversight.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowVaultLogin((prev) => !prev)}
+            className="px-4 py-2 rounded-lg bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+          >
+            <FolderLock className="w-4 h-4" />
+            <span>{showVaultLogin ? 'Hide Internal Vault' : 'Open Internal Vault & Audit Log'}</span>
+          </button>
+        </div>
+
+        {showVaultLogin && <PrivateVaultPortal embedded />}
+      </div>
     </div>
   );
 };

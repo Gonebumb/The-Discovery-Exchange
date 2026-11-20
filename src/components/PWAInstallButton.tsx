@@ -14,14 +14,14 @@ export const PWAInstallButton: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-3 left-3 sm:bottom-4 sm:left-4 z-40 flex items-center gap-1.5 max-w-[calc(100vw-6.5rem)]">
+      <div className="w-full bg-[#061529] border-t border-[#dfa62a]/35 py-3.5 px-4 flex flex-wrap items-center justify-center gap-2">
         {isInstallable ? (
           <button
             type="button"
             onClick={() => {
               void install();
             }}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#081d38] hover:bg-[#0f2b52] text-[#dfa62a] border-2 border-[#dfa62a] text-xs font-bold shadow-lg cursor-pointer transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#081d38] hover:bg-[#0f2b52] text-[#dfa62a] border-2 border-[#dfa62a] text-xs font-bold shadow-sm cursor-pointer transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Install TDEX App</span>
@@ -30,7 +30,7 @@ export const PWAInstallButton: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowMobileGuide(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#081d38] hover:bg-[#0f2b52] text-[#dfa62a] border-2 border-[#dfa62a] text-xs font-bold shadow-lg cursor-pointer transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#081d38] hover:bg-[#0f2b52] text-[#dfa62a] border-2 border-[#dfa62a] text-xs font-bold shadow-sm cursor-pointer transition-colors"
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span>{isIOS ? 'Install on iPhone / iPad' : 'Get Mobile App'}</span>
@@ -41,7 +41,7 @@ export const PWAInstallButton: React.FC = () => {
           type="button"
           aria-label="Hide install button"
           onClick={() => setDismissedButton(true)}
-          className="p-1.5 rounded-full bg-[#081d38]/90 text-slate-300 hover:text-white border border-white/20 shadow cursor-pointer"
+          className="p-1.5 rounded-full bg-[#081d38] text-slate-300 hover:text-white border border-white/20 cursor-pointer"
         >
           <X className="w-3 h-3" />
         </button>

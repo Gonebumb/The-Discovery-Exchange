@@ -5,6 +5,7 @@ import { ConciergePuppyWidget } from './components/ConciergePuppyWidget';
 import { HomepageWindowGrid } from './components/HomepageWindowGrid';
 import { OwnerPortalPage } from './components/OwnerPortalModal';
 import { OfflineIndicator, PWAInstallButton } from './components/PWAInstallButton';
+import { PrivateVaultPortal } from './components/PrivateVaultPortal';
 import { AuctionPropertyWatchPage } from './pages/AuctionPropertyWatchPage';
 import { BrickCoinPage } from './pages/BrickCoinPage';
 import { ColumboInvestigationPage } from './pages/ColumboInvestigationPage';
@@ -55,7 +56,16 @@ export default function App() {
   const [slot21Node, setSlot21Node] = useState<HTMLElement | null>(null);
 
   const [homeGridHost, setHomeGridHost] = useState<HTMLElement | null>(null);
+  const [manifestoHost, setManifestoHost] = useState<HTMLElement | null>(null);
+  const [sectionBannerHost, setSectionBannerHost] = useState<HTMLElement | null>(null);
   const [activeCustomPage, setActiveCustomPage] = useState<'columbo' | 'pipito' | null>(null);
+  const [isVaultFullscreen, setIsVaultFullscreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.location.pathname === '/vault' ||
+      window.location.hash === '#tdex-vault'
+    );
+  });
 
   useEffect(() => {
     // Load the Drive LIVE_DIST_UPLOAD bundle once onto #root
@@ -146,6 +156,42 @@ export default function App() {
       } else {
         setHomeGridHost(null);
       }
+
+      // Replace the below-hero manifesto copy while keeping the legacy Read More button mounted for modal clicks
+      const legacyManifesto = document.querySelector('#root .tdex-manifesto-copy') as HTMLElement | null;
+      const manifestoParent = legacyManifesto?.parentElement ?? null;
+      if (legacyManifesto && manifestoParent) {
+        legacyManifesto.style.display = 'none';
+        let mHost = manifestoParent.querySelector('#tdex-manifesto-override-host') as HTMLElement | null;
+        if (!mHost) {
+          mHost = document.createElement('div');
+          mHost.id = 'tdex-manifesto-override-host';
+          manifestoParent.appendChild(mHost);
+        }
+        setManifestoHost((prev) => (prev === mHost ? prev : mHost));
+      } else {
+        setManifestoHost(null);
+      }
+
+      // Replace the navy section banner above the 15 windows ("What Is Inside The Discovery Exchange")
+      const bannerEl = homeMain?.previousElementSibling as HTMLElement | null;
+      if (bannerEl && bannerEl.tagName === 'DIV' && bannerEl.querySelector('h2')) {
+        Array.from(bannerEl.children).forEach((child) => {
+          const el = child as HTMLElement;
+          if (el.id !== 'tdex-section-banner-host') {
+            el.style.display = 'none';
+          }
+        });
+        let bHost = bannerEl.querySelector('#tdex-section-banner-host') as HTMLElement | null;
+        if (!bHost) {
+          bHost = document.createElement('div');
+          bHost.id = 'tdex-section-banner-host';
+          bannerEl.appendChild(bHost);
+        }
+        setSectionBannerHost((prev) => (prev === bHost ? prev : bHost));
+      } else {
+        setSectionBannerHost(null);
+      }
     };
 
     syncSlots();
@@ -168,16 +214,49 @@ export default function App() {
     };
     document.addEventListener('click', handleHeaderClick, true);
 
+    const handleSecretVaultSync = () => {
+      const wantsVault =
+        window.location.pathname === '/vault' || window.location.hash === '#tdex-vault';
+      setIsVaultFullscreen(wantsVault);
+    };
+    const handleSecretHotkey = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey && e.key.toUpperCase() === 'V') {
+        e.preventDefault();
+        setIsVaultFullscreen((prev) => {
+          const next = !prev;
+          if (next) {
+            window.history.replaceState(null, '', '#tdex-vault');
+          } else if (window.location.hash === '#tdex-vault' || window.location.pathname === '/vault') {
+            window.history.replaceState(null, '', '/');
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener('hashchange', handleSecretVaultSync);
+    window.addEventListener('popstate', handleSecretVaultSync);
+    window.addEventListener('keydown', handleSecretHotkey);
+
     return () => {
       observer.disconnect();
       document.removeEventListener('click', handleHeaderClick, true);
+      window.removeEventListener('hashchange', handleSecretVaultSync);
+      window.removeEventListener('popstate', handleSecretVaultSync);
+      window.removeEventListener('keydown', handleSecretHotkey);
     };
   }, []);
 
-  // Hide homepage video hero banner when viewing full-page Columbo or Pipito overlay
+  // Hide homepage video hero banner and section banner when viewing full-page Columbo or Pipito overlay
   useEffect(() => {
     const homeMain = document.querySelector('#root main:not([id^="clean-page-"])') as HTMLElement | null;
-    const heroSection = homeMain?.previousElementSibling as HTMLElement | null;
+    const prevEl = homeMain?.previousElementSibling as HTMLElement | null;
+    if (prevEl) {
+      prevEl.style.display = activeCustomPage ? 'none' : '';
+    }
+    const heroSection =
+      prevEl?.tagName === 'SECTION'
+        ? prevEl
+        : (prevEl?.previousElementSibling as HTMLElement | null);
     if (heroSection && heroSection.tagName === 'SECTION') {
       heroSection.style.display = activeCustomPage ? 'none' : '';
     }
@@ -205,6 +284,60 @@ export default function App() {
 
   return (
     <>
+      {sectionBannerHost &&
+        createPortal(
+          <div className="max-w-5xl mx-auto space-y-1.5 text-center">
+            <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.58rem] font-bold tracking-wide text-white">
+              The Discovery Exchange (Tdex) &amp; National Discovery Awards (NDA)
+            </h2>
+            <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
+              1. Dexpa, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
+            </p>
+            <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-4xl mx-auto">
+              These three foundations empower parents to become not members, but Owners—shielding
+              family savings from inflation while funding the Discovery Awards with zero financial
+              burden on our families.
+              <span className="block sm:whitespace-nowrap mt-0.5">
+                21st Century — OF the People, BY the People, FOR the People.
+              </span>
+            </p>
+          </div>,
+          sectionBannerHost
+        )}
+      {manifestoHost &&
+        createPortal(
+          <div className="space-y-2 text-[12.5px] sm:text-[13px] lg:text-[13.5px] leading-[1.4] font-normal text-slate-100">
+            <p>
+              During our generation’s tenure, American public school students have fallen to 26th
+              place globally. As if that weren’t alarming enough, in Oregon, students no longer have
+              to prove they can read, write, or do math to graduate. The root issue isn’t
+              educators—it’s a political bureaucracy spiraling out of control, making the 2006 film{' '}
+              <em>Idiocracy</em> look less like a comedy and more like a warning.
+            </p>
+            <p>
+              Inspired by the Nobel Prize, The Discovery Exchange has bypassed the bureaucracy by
+              creating the National Discovery Awards (NDA)—motivating public school teachers and
+              students nationwide with thousands of real cash prizes.
+            </p>
+            <p>
+              <span className="text-white font-semibold">Phase 1 &amp; 1,000-Owner Credit Union Roadmap:</span> Once NDA’s legal nonprofit
+              sponsorship is finalized, NDA will welcome charitable donations and grants to honor
+              great teachers and lift working-class students—while building toward full
+              self-sustainability by 2028 through three interlocked foundations:{' '}
+              <span className="text-white">
+                1. Dexpa, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
+              </span>{' '}
+              Prior to reaching 1,000 verified Owners, TDEX charges $0 fees and never touches any
+              money; at <strong>1,000 verified Owners</strong>, the Owner Board and Pushers file
+              with the NCUA to charter our own 100% Owner-governed Federal Credit Union.
+            </p>
+            <p>
+              Learn how NDA’s three mutually benefiting foundations work together to shield family
+              savings from inflation while funding the awards below.
+            </p>
+          </div>,
+          manifestoHost
+        )}
       {homeGridHost &&
         createPortal(
           activeCustomPage ? (
@@ -270,6 +403,21 @@ export default function App() {
       <OfflineIndicator />
       <PWAInstallButton />
       <ConciergePuppyWidget />
+      {isVaultFullscreen && (
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#071936]">
+          <PrivateVaultPortal
+            onExitFullscreen={() => {
+              setIsVaultFullscreen(false);
+              if (
+                window.location.hash === '#tdex-vault' ||
+                window.location.pathname === '/vault'
+              ) {
+                window.history.replaceState(null, '', '/');
+              }
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }

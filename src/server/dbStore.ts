@@ -88,6 +88,113 @@ export interface PersistedStudioSubmission {
   juryStatus: 'QUEUED_FOR_12_OWNER_OUT_OF_STATE_BLIND_JURY';
 }
 
+export type VaultRole = 'FOUNDER' | 'ARBITRATION_COURT' | 'BOARD_MEMBER' | 'AI_OVERSIGHT';
+
+export type VaultAccessScope = 'FILINGS' | 'PII_OVERSIGHT' | 'AI_AUDIT_LOGS' | 'ALL_VAULT_RECORDS';
+
+export interface PersistedVaultCredential {
+  role: VaultRole;
+  label: string;
+  saltHex: string;
+  scryptHashHex: string;
+  isTemporary: boolean;
+  updatedAtUtc: string;
+}
+
+export interface PersistedVaultSession {
+  token: string;
+  role: VaultRole;
+  actorId: string;
+  actorLabel: string;
+  issuedAtUtc: string;
+  expiresAtMs: number;
+}
+
+export interface PersistedCourtAccessRequest {
+  requestId: string;
+  requesterActorId: string;
+  requesterLabel: string;
+  scope: VaultAccessScope;
+  justification: string;
+  durationHours: number;
+  status: 'PENDING' | 'APPROVED' | 'DENIED' | 'REVOKED';
+  courtOrderId?: string;
+  reviewedByActorId?: string;
+  courtNotes?: string;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface PersistedCourtOrder {
+  orderId: string;
+  requestId: string;
+  boardActorId: string;
+  boardActorLabel: string;
+  caseNumber: string;
+  scope: VaultAccessScope;
+  status: 'APPROVED' | 'DENIED' | 'REVOKED';
+  issuedByActorId: string;
+  sealHash: string;
+  courtNotes: string;
+  expiresAtMs: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export type VaultFolderName =
+  | '01_Property_Silos'
+  | '02_Seller_Side_Escrow_Matches'
+  | '03_Awards_DILOS_Proofs'
+  | '04_Board_Minutes_Votes'
+  | '05_Append_Only_Audit_Trails';
+
+export interface PersistedVaultFiling {
+  filingId: string;
+  folder: VaultFolderName;
+  category: 'FILINGS' | 'PII_OVERSIGHT' | 'AI_AUDIT_LOGS' | 'ESCROW_SAFEKEEPING';
+  title: string;
+  version: number;
+  supersedesDocId?: string;
+  classification: 'BOARD_COURT_ONLY' | 'FOUNDER_COURT_ONLY' | 'DILOS_SEALED' | 'BOARD_AND_PUSHERS';
+  summary: string;
+  details: Record<string, unknown>;
+  dilosIntegrityHash: string;
+  createdByActorId: string;
+  createdAtUtc: string;
+}
+
+export interface PersistedGovernanceState {
+  boardSeated: boolean;
+  phase1CustodianId: string;
+  activeBoardIds: string[];
+  authorizedPusherIds: string[];
+  verifiedOwnerCount: number;
+  readonly fcuCharterThreshold: number;
+}
+
+export interface PersistedMovementLogEntry {
+  seq: number;
+  eventId: string;
+  timestampUtc: string;
+  actorId: string;
+  actorRole: VaultRole | 'DILOS_SYSTEM';
+  action: string;
+  targetResource: string;
+  courtOrderId?: string;
+  dilosStage: 'CONCIERGE' | 'COLUMBO' | 'PIPITO' | 'HUMAN_COURT_WITNESS';
+  summary: string;
+  prevHash: string;
+  currentHash: string;
+}
+
+export interface PersistedVaultSecurityState {
+  emergencyStopActive: boolean;
+  emergencyStopReason: string;
+  updatedByActorId?: string;
+  updatedAtUtc?: string;
+  failedAttemptsByKey: Record<string, { count: number; lockedUntilMs: number }>;
+}
+
 export interface TdexPersistentStore {
   version: string;
   ownersByEmail: Record<string, PersistedOwnerAccount>;
@@ -101,6 +208,14 @@ export interface TdexPersistentStore {
   listings: PersistedMarketplaceListing[];
   tradeReceipts: PersistedTradeReceipt[];
   studioSubmissions: PersistedStudioSubmission[];
+  vaultCredentials: Partial<Record<VaultRole, PersistedVaultCredential>>;
+  vaultSessions: Record<string, PersistedVaultSession>;
+  courtAccessRequests: PersistedCourtAccessRequest[];
+  courtOrders: PersistedCourtOrder[];
+  vaultFilings: PersistedVaultFiling[];
+  internalMovementLog: PersistedMovementLogEntry[];
+  vaultSecurityState: PersistedVaultSecurityState;
+  governanceState: PersistedGovernanceState;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -243,6 +358,25 @@ function createDefaultStore(): TdexPersistentStore {
     listings: [...SEED_LISTINGS],
     tradeReceipts: [],
     studioSubmissions: [],
+    vaultCredentials: {},
+    vaultSessions: {},
+    courtAccessRequests: [],
+    courtOrders: [],
+    vaultFilings: [],
+    internalMovementLog: [],
+    vaultSecurityState: {
+      emergencyStopActive: false,
+      emergencyStopReason: '',
+      failedAttemptsByKey: {},
+    },
+    governanceState: {
+      boardSeated: false,
+      phase1CustodianId: 'petrossianbobby@gmail.com',
+      activeBoardIds: [],
+      authorizedPusherIds: [],
+      verifiedOwnerCount: 0,
+      fcuCharterThreshold: 1000,
+    },
   };
 }
 
@@ -272,6 +406,23 @@ export function loadStore(): TdexPersistentStore {
             : base.listings,
         tradeReceipts: Array.isArray(parsed.tradeReceipts) ? parsed.tradeReceipts : [],
         studioSubmissions: Array.isArray(parsed.studioSubmissions) ? parsed.studioSubmissions : [],
+        vaultCredentials: parsed.vaultCredentials || {},
+        vaultSessions: parsed.vaultSessions || {},
+        courtAccessRequests: Array.isArray(parsed.courtAccessRequests)
+          ? parsed.courtAccessRequests
+          : [],
+        courtOrders: Array.isArray(parsed.courtOrders) ? parsed.courtOrders : [],
+        vaultFilings: Array.isArray(parsed.vaultFilings) ? parsed.vaultFilings : [],
+        internalMovementLog: Array.isArray(parsed.internalMovementLog)
+          ? parsed.internalMovementLog
+          : [],
+        vaultSecurityState: parsed.vaultSecurityState || base.vaultSecurityState,
+        governanceState: {
+          ...base.governanceState,
+          ...(parsed.governanceState || {}),
+          verifiedOwnerCount: Object.keys(parsed.ownersByEmail || {}).length,
+          fcuCharterThreshold: 1000,
+        },
       };
       return cachedStore;
     }

@@ -1,5 +1,6 @@
-import {createRoot} from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import './index.css';
 
 if ('serviceWorker' in navigator) {
@@ -8,4 +9,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-createRoot(document.getElementById('tdex-portal-bridge')!).render(<App />);
+createRoot(document.getElementById('tdex-portal-bridge')!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

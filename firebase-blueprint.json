@@ -1,0 +1,472 @@
+{
+  "entities": {
+    "VaultRole": {
+      "title": "VaultRole",
+      "description": "Authorized governance role assignment for the private TDEX Vault (Founder, Internal Arbitration Court, Board of Directors, or AI Oversight).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "role": {
+          "type": "string",
+          "enum": ["FOUNDER", "ARBITRATION_COURT", "BOARD_MEMBER", "AI_OVERSIGHT"]
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "assignedByUid": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "role", "displayName", "active", "assignedByUid", "createdAt", "updatedAt"]
+    },
+    "CourtAccessRequest": {
+      "title": "CourtAccessRequest",
+      "description": "Formal request submitted by a Board of Directors member seeking Internal Arbitration Court clearance before inspecting Vault filings.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requesterUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requesterLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["FILINGS", "PII_OVERSIGHT", "AI_AUDIT_LOGS", "ALL_VAULT_RECORDS"]
+        },
+        "justification": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "durationHours": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "APPROVED", "DENIED", "REVOKED"]
+        },
+        "courtOrderId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "reviewedByUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "courtNotes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "requestId",
+        "requesterUid",
+        "requesterLabel",
+        "scope",
+        "justification",
+        "durationHours",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CourtClearanceOrder": {
+      "title": "CourtClearanceOrder",
+      "description": "Signed Internal Arbitration Court order authorizing a specific Board Member to access scoped Vault filings for a limited window.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "boardMemberUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "caseNumber": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["FILINGS", "PII_OVERSIGHT", "AI_AUDIT_LOGS", "ALL_VAULT_RECORDS"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["APPROVED", "REVOKED", "EXPIRED"]
+        },
+        "issuedByCourtUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128
+        },
+        "sealHash": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        },
+        "expiresAtMs": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "requestId",
+        "boardMemberUid",
+        "caseNumber",
+        "scope",
+        "status",
+        "issuedByCourtUid",
+        "sealHash",
+        "expiresAtMs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VaultFiling": {
+      "title": "VaultFiling",
+      "description": "Confidential governance, escrow, PII oversight, or safekeeping record accessible only to Founder, Court, or Court-cleared Board Members.",
+      "type": "object",
+      "properties": {
+        "filingId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["FILINGS", "PII_OVERSIGHT", "AI_AUDIT_LOGS", "ESCROW_SAFEKEEPING"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "classification": {
+          "type": "string",
+          "enum": ["BOARD_COURT_ONLY", "FOUNDER_COURT_ONLY", "DILOS_SEALED"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 4000
+        },
+        "dilosIntegrityHash": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "filingId",
+        "category",
+        "title",
+        "classification",
+        "summary",
+        "dilosIntegrityHash",
+        "createdByUid",
+        "createdAt"
+      ]
+    },
+    "InternalMovementRecord": {
+      "title": "InternalMovementRecord",
+      "description": "Append-only SHA-256 hash-chained log documenting every single internal action, read, approval, denial, filing, and DILOS pipeline movement.",
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "actorUid": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["FOUNDER", "ARBITRATION_COURT", "BOARD_MEMBER", "AI_OVERSIGHT", "DILOS_SYSTEM"]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "targetResource": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "courtOrderId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "dilosStage": {
+          "type": "string",
+          "enum": ["CONCIERGE", "COLUMBO", "PIPITO", "HUMAN_COURT_WITNESS"]
+        },
+        "prevHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "currentHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "eventId",
+        "seq",
+        "actorUid",
+        "actorRole",
+        "action",
+        "targetResource",
+        "dilosStage",
+        "prevHash",
+        "currentHash",
+        "summary",
+        "createdAt"
+      ]
+    },
+    "OwnerProfile": {
+      "title": "OwnerProfile",
+      "description": "Verified human owner voting account (1 Human Owner = 1 Vote invariant).",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stateCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 12
+        },
+        "votingWeight": {
+          "type": "integer"
+        },
+        "isAdultVerified": {
+          "type": "boolean"
+        },
+        "accumulationBalanceCents": {
+          "type": "integer"
+        },
+        "dbcBalance": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "stateCode",
+        "votingWeight",
+        "isAdultVerified",
+        "accumulationBalanceCents",
+        "dbcBalance",
+        "createdAt"
+      ]
+    },
+    "EncryptedPiiRecord": {
+      "title": "EncryptedPiiRecord",
+      "description": "Air-gapped personal identifiable information isolated strictly to the owner or Founder/Court emergency oversight.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "contactHint": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "guardianConsent": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "fullName", "guardianConsent", "updatedAt"]
+    },
+    "PublicLedgerEvent": {
+      "title": "PublicLedgerEvent",
+      "description": "Publicly verifiable anonymized append-only ledger block with zero PII.",
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventType": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "currentHash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["eventId", "eventType", "currentHash", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/vault_roles/{roleUid}": {
+      "schema": {
+        "$ref": "#/entities/VaultRole"
+      },
+      "description": "Trusted role assignments for Founder, Internal Arbitration Court, Board of Directors, and AI Oversight."
+    },
+    "/court_access_requests/{requestId}": {
+      "schema": {
+        "$ref": "#/entities/CourtAccessRequest"
+      },
+      "description": "Board of Directors requests awaiting Internal Arbitration Court approval."
+    },
+    "/court_orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/CourtClearanceOrder"
+      },
+      "description": "Time-limited, scoped Court Clearance Orders granting Board Members temporary access to Vault filings."
+    },
+    "/vault_filings/{filingId}": {
+      "schema": {
+        "$ref": "#/entities/VaultFiling"
+      },
+      "description": "Closed Board, Founder, Court & DILOS confidential safekeeping filings."
+    },
+    "/internal_movement_log/{eventId}": {
+      "schema": {
+        "$ref": "#/entities/InternalMovementRecord"
+      },
+      "description": "Immutable append-only movement ledger recording every Vault and DILOS action."
+    },
+    "/owners/{ownerUid}": {
+      "schema": {
+        "$ref": "#/entities/OwnerProfile"
+      },
+      "description": "Verified human Owner voting profiles (1 Human Owner = 1 Vote)."
+    },
+    "/encrypted_pii_vault/{ownerUid}": {
+      "schema": {
+        "$ref": "#/entities/EncryptedPiiRecord"
+      },
+      "description": "Isolated PII records strictly inaccessible to public visitors."
+    },
+    "/append_only_ledger/{eventId}": {
+      "schema": {
+        "$ref": "#/entities/PublicLedgerEvent"
+      },
+      "description": "Public anonymized ledger blocks written under DILOS safeguards."
+    }
+  }
+}
