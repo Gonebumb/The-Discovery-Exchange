@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Gamepad2 } from 'lucide-react';
+import { BuildTheBlockGame } from './components/BuildTheBlockGame';
 import { ConciergePuppyWidget } from './components/ConciergePuppyWidget';
 import { HomepageWindowGrid } from './components/HomepageWindowGrid';
+import { LegalComplianceFooter } from './components/LegalComplianceFooter';
 import { OwnerPortalPage } from './components/OwnerPortalModal';
 import { OfflineIndicator, PWAInstallButton } from './components/PWAInstallButton';
 import { PrivateVaultPortal } from './components/PrivateVaultPortal';
@@ -55,10 +57,14 @@ export default function App() {
   const [slot20Node, setSlot20Node] = useState<HTMLElement | null>(null);
   const [slot21Node, setSlot21Node] = useState<HTMLElement | null>(null);
 
+  const [topNoticeHost, setTopNoticeHost] = useState<HTMLElement | null>(null);
+  const [legalFooterHost, setLegalFooterHost] = useState<HTMLElement | null>(null);
   const [homeGridHost, setHomeGridHost] = useState<HTMLElement | null>(null);
   const [manifestoHost, setManifestoHost] = useState<HTMLElement | null>(null);
   const [sectionBannerHost, setSectionBannerHost] = useState<HTMLElement | null>(null);
-  const [activeCustomPage, setActiveCustomPage] = useState<'columbo' | 'pipito' | null>(null);
+  const [activeCustomPage, setActiveCustomPage] = useState<'columbo' | 'pipito' | 'challenge' | null>(
+    null
+  );
   const [isVaultFullscreen, setIsVaultFullscreen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -72,10 +78,61 @@ export default function App() {
     if (!document.querySelector('script[data-tdex-live-base="true"]')) {
       const script = document.createElement('script');
       script.type = 'module';
-      script.src = '/live-dist/assets/index-BUOPYDOV.js?v=20261118t';
+      script.src = '/live-dist/assets/index-BUOPYDOV.js?v=20261120b';
       script.setAttribute('data-tdex-live-base', 'true');
       document.body.appendChild(script);
     }
+
+    let noticeHost = document.getElementById('tdex-top-notice-host');
+    if (!noticeHost) {
+      noticeHost = document.createElement('div');
+      noticeHost.id = 'tdex-top-notice-host';
+      document.body.insertBefore(noticeHost, document.body.firstChild);
+    }
+    setTopNoticeHost(noticeHost);
+
+    let footerHost = document.getElementById('tdex-legal-footer-host');
+    if (!footerHost) {
+      footerHost = document.createElement('div');
+      footerHost.id = 'tdex-legal-footer-host';
+      document.body.appendChild(footerHost);
+    }
+    setLegalFooterHost(footerHost);
+
+    // Proportional desktop canvas lock (1360px canonical width) so changing monitor resolution
+    // or OS display scaling keeps the exact same visual layout without elements jumping out of place.
+    const LOCKED_DESKTOP_WIDTH = 1360;
+    const syncDesktopCanvasScale = () => {
+      const vw = document.documentElement.clientWidth || window.innerWidth;
+      const rootNode = document.getElementById('root');
+      const bannerNode = document.getElementById('tdex-top-notice-host');
+      const legalNode = document.getElementById('tdex-legal-footer-host');
+      const targets = [rootNode, bannerNode, legalNode];
+
+      if (vw >= 640 && vw < LOCKED_DESKTOP_WIDTH) {
+        const scale = vw / LOCKED_DESKTOP_WIDTH;
+        targets.forEach((node) => {
+          if (node) {
+            node.style.width = `${LOCKED_DESKTOP_WIDTH}px`;
+            node.style.marginLeft = 'auto';
+            node.style.marginRight = 'auto';
+            node.style.zoom = String(scale);
+          }
+        });
+      } else {
+        targets.forEach((node) => {
+          if (node) {
+            node.style.width = '100%';
+            node.style.marginLeft = '';
+            node.style.marginRight = '';
+            node.style.zoom = '1';
+          }
+        });
+      }
+    };
+
+    syncDesktopCanvasScale();
+    window.addEventListener('resize', syncDesktopCanvasScale);
 
     const syncSlots = () => {
       const nNda = document.getElementById('clean-page-nda');
@@ -192,6 +249,41 @@ export default function App() {
       } else {
         setSectionBannerHost(null);
       }
+      // Inject "🎮 Play: Build the Block" CTA pill with FREE badge cleanly in the main navigation menu
+      const headerNavs = Array.from(document.querySelectorAll('#root header nav'));
+      const targetNav =
+        headerNavs.find((nav) => (nav.textContent || '').includes('Marketplace')) ??
+        headerNavs[headerNavs.length - 1] ??
+        null;
+      if (targetNav && !document.getElementById('tdex-nav-challenge-btn')) {
+        const btn = document.createElement('button');
+        btn.id = 'tdex-nav-challenge-btn';
+        btn.type = 'button';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = '🎮 Play: Build the Block';
+        const freeTag = document.createElement('span');
+        freeTag.className = 'tdex-free-tag';
+        freeTag.textContent = 'FREE';
+
+        btn.appendChild(labelSpan);
+        btn.appendChild(freeTag);
+
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const hasHomeGrid = !!document.getElementById('tdex-15-window-host');
+          if (!hasHomeGrid) {
+            const homeBtn = Array.from(document.querySelectorAll('#root header button')).find((b) => {
+              const txt = (b.textContent || '').replace(/^[•\s]+/, '').trim().toLowerCase();
+              return txt === 'home' || txt.includes('the discovery exchange');
+            }) as HTMLButtonElement | undefined;
+            homeBtn?.click();
+          }
+          setActiveCustomPage('challenge');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        targetNav.appendChild(btn);
+      }
     };
 
     syncSlots();
@@ -205,10 +297,12 @@ export default function App() {
       attributeFilter: ['id'],
     });
 
-    // Reset custom Columbo/Pipito full-page overlay whenever a top header nav button is clicked
+    // Reset custom Columbo/Pipito/Challenge pages whenever a real user clicks another top header nav button
     const handleHeaderClick = (e: Event) => {
+      if (!e.isTrusted) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest('#root header button')) {
+      const btn = target?.closest('#root header button');
+      if (btn && btn.id !== 'tdex-nav-challenge-btn') {
         setActiveCustomPage(null);
       }
     };
@@ -239,6 +333,7 @@ export default function App() {
 
     return () => {
       observer.disconnect();
+      window.removeEventListener('resize', syncDesktopCanvasScale);
       document.removeEventListener('click', handleHeaderClick, true);
       window.removeEventListener('hashchange', handleSecretVaultSync);
       window.removeEventListener('popstate', handleSecretVaultSync);
@@ -277,29 +372,47 @@ export default function App() {
     }
   }, []);
 
-  const handleOpenCustomPage = useCallback((page: 'columbo' | 'pipito') => {
+  const handleOpenCustomPage = useCallback((page: 'columbo' | 'pipito' | 'challenge') => {
     setActiveCustomPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   return (
     <>
+      {topNoticeHost &&
+        createPortal(
+          <div
+            role="status"
+            aria-live="polite"
+            className="w-full bg-white text-[#B47D12] border-b-2 border-[#dfa62a] shadow-sm relative z-[60]"
+          >
+            <div className="max-w-[1360px] mx-auto px-3 py-2 text-center text-[11.5px] sm:text-[12px] font-bold leading-none sm:whitespace-nowrap tracking-[0.01em]">
+              <span className="font-extrabold uppercase tracking-wider mr-1.5 text-[#9A6B0A]">
+                Notice:
+              </span>
+              <span>
+                This site is currently in a pre-launch testing phase, pending final documentation
+                approval, and is not yet open to the public. We welcome your feedback and
+                suggestions.
+              </span>
+            </div>
+          </div>,
+          topNoticeHost
+        )}
       {sectionBannerHost &&
         createPortal(
           <div className="max-w-5xl mx-auto space-y-1.5 text-center">
             <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.58rem] font-bold tracking-wide text-white">
-              The Discovery Exchange (Tdex) &amp; National Discovery Awards (NDA)
+              🎮 Play Free: Build Debt-Free Neighborhoods
             </h2>
-            <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
-              1. Dexpa, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
+            <p className="text-sm sm:text-base text-[#fcd34d] font-bold max-w-4xl mx-auto leading-snug">
+              The best way to understand how The Discovery Exchange (TDEX) and The National
+              Discovery Awards (NDA) work is by playing the game—play one round and everything
+              clicks immediately.
             </p>
-            <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-4xl mx-auto">
-              These three foundations empower parents to become not members, but Owners—shielding
-              family savings from inflation while funding the Discovery Awards with zero financial
-              burden on our families.
-              <span className="block sm:whitespace-nowrap mt-0.5">
-                21st Century — OF the People, BY the People, FOR the People.
-              </span>
+            <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium max-w-4xl mx-auto">
+              Jump In &amp; Play Free — Learn in 3 Minutes, Build for Hours &bull; Zero Sign-Up
+              &bull; Zero Real Money Required
             </p>
           </div>,
           sectionBannerHost
@@ -325,15 +438,15 @@ export default function App() {
               great teachers and lift working-class students—while building toward full
               self-sustainability by 2028 through three interlocked foundations:{' '}
               <span className="text-white">
-                1. Dexpa, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
+                1. DEXPA, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
               </span>{' '}
               Prior to reaching 1,000 verified Owners, TDEX charges $0 fees and never touches any
-              money; at <strong>1,000 verified Owners</strong>, the Owner Board and Pushers file
+              money; at <strong>1,000 verified Owners</strong>, the Mom &amp; Pop Board and Pushers file
               with the NCUA to charter our own 100% Owner-governed Federal Credit Union.
             </p>
             <p>
-              Learn how NDA’s three mutually benefiting foundations work together to shield family
-              savings from inflation while funding the awards below.
+              See below how our three mutually beneficial foundations shield family savings from
+              inflation and fund the awards.
             </p>
           </div>,
           manifestoHost
@@ -341,8 +454,8 @@ export default function App() {
       {homeGridHost &&
         createPortal(
           activeCustomPage ? (
-            <div className="max-w-[1280px] mx-auto pt-8 space-y-6">
-              <div>
+            <div className="max-w-[1280px] mx-auto px-4 pt-8 pb-10 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -352,20 +465,120 @@ export default function App() {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#081d38] hover:bg-[#0f2b52] text-[#dfa62a] text-xs font-bold cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back to 15 Homepage Windows</span>
+                  <span>Back to Homepage</span>
                 </button>
+                {activeCustomPage === 'challenge' && (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-extrabold">
+                    <Gamepad2 className="w-4 h-4 text-emerald-700" />
+                    <span>Jump In &amp; Play Free — Learn in 3 Minutes, Build for Hours</span>
+                  </div>
+                )}
               </div>
+
               {activeCustomPage === 'columbo' ? (
                 <ColumboInvestigationPage />
-              ) : (
+              ) : activeCustomPage === 'pipito' ? (
                 <PipitoGatekeepingPage />
+              ) : (
+                <div className="space-y-6">
+                  <BuildTheBlockGame />
+
+                  {/* Bottom Call-to-Action Bar on the Dedicated Game Page */}
+                  <div className="rounded-2xl bg-[#081d38] text-white border-2 border-[#dfa62a] px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+                    <p className="text-xs sm:text-sm text-slate-100 leading-relaxed max-w-2xl font-medium">
+                      <strong className="text-[#fcd34d]">
+                        Ready to do this for your family in real life?
+                      </strong>{' '}
+                      TDEX never holds your money—your funds stay in your own regulated wallet until
+                      licensed escrow closes on a 100% debt-free building.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => navigateByButtonLabel('Log in')}
+                        className="px-4 py-2.5 rounded-xl bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        Create Verified Owner Account
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateByButtonLabel('How TDEX Works')}
+                        className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/30 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        Read How TDEX Works A–Z
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ) : (
-            <HomepageWindowGrid
-              onNavigateByButtonLabel={navigateByButtonLabel}
-              onOpenCustomPage={handleOpenCustomPage}
-            />
+            <div className="space-y-8">
+              {/* 2ND HERO PICTURE + BUTTON TO OPEN DEDICATED GAME PAGE (NO FULL GAME ON HOMEPAGE) */}
+              <section
+                id="tdex-home-challenge-section"
+                className="max-w-[1160px] mx-auto px-4 pt-6 space-y-4 scroll-mt-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleOpenCustomPage('challenge')}
+                  aria-label="Play Free: Build Debt-Free Neighborhoods — Open The Discovery Exchange Challenge Game Page"
+                  className="block w-full rounded-2xl overflow-hidden border-2 border-[#dfa62a] shadow-lg bg-[#081d38] hover:shadow-xl hover:brightness-[1.02] transition-all cursor-pointer p-0 text-left"
+                >
+                  <img
+                    src="/assets/aistudio/image_9d14b16d_f26ca1bc.jpg"
+                    alt="Celebrating Our Community Builders — Trade Household Items (50% Funds / 25% Seller / 25% Buyer), Close 100% Debt-Free Apartment Silos, Earn 70/30 Rental Income — Play Free: Build Debt-Free Neighborhoods"
+                    className="w-full h-auto block"
+                  />
+                </button>
+
+                {/* Launch Button Bar Directly Under the 2nd Hero Picture */}
+                <div className="rounded-2xl bg-white border-2 border-[#dfa62a] px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="space-y-0.5 text-center sm:text-left">
+                    <div className="text-sm sm:text-base font-extrabold text-[#081d38]">
+                      Play Free: Build Debt-Free Neighborhoods
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                      Jump In &amp; Play Free — Learn in 3 Minutes, Build for Hours. Click the
+                      button to open the interactive simulation on its own dedicated page.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCustomPage('challenge')}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-xs sm:text-sm font-extrabold shadow-md border border-emerald-400/60 transition-transform hover:-translate-y-0.5 cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Gamepad2 className="w-4 h-4 text-[#fcd34d]" />
+                    <span>Play Free: Build Debt-Free Neighborhoods &rarr;</span>
+                  </button>
+                </div>
+              </section>
+
+              {/* THE DISCOVERY EXCHANGE BANNER — RESTORED DIRECTLY ABOVE THE 15 HOMEPAGE WINDOWS */}
+              <div className="w-full bg-[#081d38] border-y-2 border-[#dfa62a] py-6 px-4 shadow-sm">
+                <div className="max-w-5xl mx-auto space-y-1.5 text-center">
+                  <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.58rem] font-bold tracking-wide text-white">
+                    The Discovery Exchange (TDEX) &amp; National Discovery Awards (NDA)
+                  </h2>
+                  <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
+                    1. DEXPA, 2. The Discovery Marketplace, and 3. Discovery Brick Coin (DBC).
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-5xl mx-auto">
+                    These three foundations empower parents to become not just members, but
+                    Owners—shielding family savings from inflation while funding the
+                    <span className="block mt-0.5">
+                      Discovery Awards with zero financial burden to our families, 21st Century — OF
+                      the People, BY the People, FOR the People.
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <HomepageWindowGrid
+                onNavigateByButtonLabel={navigateByButtonLabel}
+                onOpenCustomPage={handleOpenCustomPage}
+              />
+            </div>
           ),
           homeGridHost
         )}
@@ -400,6 +613,11 @@ export default function App() {
       {slot19Node && createPortal(<OpenLedgerAuditPage />, slot19Node)}
       {slot20Node && createPortal(<PastHistoryLessonsPage />, slot20Node)}
       {slot21Node && createPortal(<UniversalAiOperatingLawsPage />, slot21Node)}
+      {legalFooterHost &&
+        createPortal(
+          <LegalComplianceFooter onNavigateByButtonLabel={navigateByButtonLabel} />,
+          legalFooterHost
+        )}
       <OfflineIndicator />
       <PWAInstallButton />
       <ConciergePuppyWidget />

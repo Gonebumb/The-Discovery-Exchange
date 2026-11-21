@@ -53,11 +53,13 @@ const SAMPLE_DISTRICTS: DistrictChapter[] = [
 export const SchoolDistrictAwardsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DistrictTab>('overview');
 
-  // District Registration Simulator State
+  // District & State Representative Registration State
+  const [repScope, setRepScope] = useState<'district_liaison' | 'state_coordinator'>('district_liaison');
   const [districtName, setDistrictName] = useState('');
   const [districtState, setDistrictState] = useState('NV');
   const [repTitle, setRepTitle] = useState<'teacher' | 'principal' | 'parent_pusher'>('teacher');
   const [schoolCount, setSchoolCount] = useState<number>(5);
+  const [conflictDisclosure, setConflictDisclosure] = useState('');
   const [acceptedNoBossRule, setAcceptedNoBossRule] = useState(false);
   const [acceptedChildSafety, setAcceptedChildSafety] = useState(false);
   const [registrationReceipt, setRegistrationReceipt] = useState<string | null>(null);
@@ -66,7 +68,8 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
     e.preventDefault();
     if (!districtName.trim() || !acceptedNoBossRule || !acceptedChildSafety) return;
     const code = Math.floor(1000 + Math.random() * 9000);
-    setRegistrationReceipt(`TDX-DIST-${districtState.toUpperCase()}-${code}`);
+    const prefix = repScope === 'state_coordinator' ? 'TDX-STATE' : 'TDX-DIST';
+    setRegistrationReceipt(`${prefix}-${districtState.toUpperCase()}-${code}`);
   };
 
   return (
@@ -136,8 +139,8 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
       <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap gap-2">
         {[
           { id: 'overview', label: '1. How District Representation Works' },
-          { id: 'mechanism', label: '2. District Governance & Anti-Capture Rules' },
-          { id: 'register', label: '3. Sign Up Your School District' },
+          { id: 'mechanism', label: '2. School & State Representatives Code' },
+          { id: 'register', label: '3. Register as School / State Representative' },
           { id: 'directory', label: '4. Participating District Chapters' },
         ].map((tab) => {
           const active = activeTab === tab.id;
@@ -220,71 +223,248 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: DISTRICT GOVERNANCE & ANTI-CAPTURE RULES */}
+      {/* TAB 2: SCHOOL DISTRICT & STATE REPRESENTATIVES CODE */}
       {activeTab === 'mechanism' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2.5">
-            <h2 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
-              <Scale className="w-5 h-5 text-[#b47d12]" />
-              <span>1. One-Season Term Limit on District Reviewers</span>
+        <div className="space-y-6">
+          {/* Code Header & Constitutional Limits */}
+          <div className="bg-[#081d38] text-white rounded-2xl border-2 border-[#dfa62a] p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[#fcd34d]">
+                Master Charter Article 1.3, Article 3 &amp; Article 7
+              </span>
+              <span className="px-3 py-1 rounded bg-white/10 text-xs font-bold text-emerald-300 border border-emerald-400/40">
+                Zero Extra Votes &bull; Zero Territory Monopolies
+              </span>
+            </div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold">
+              School District &amp; State Representatives Code
             </h2>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              District representatives help teachers and families submit entries, but they cannot judge entries from their own state or district (Article 6.2). Any educator selected for a national finalist panel serves for one single season only.
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              <strong>Grassroots Liaisons &amp; Educators (Not Bosses or Politicians):</strong>{' '}
+              School District and State Representatives are KYC-verified human Owners (teachers,
+              parents, or community Pushers) who volunteer to connect local public schools,
+              teachers, and working-class students with The National Discovery Awards
+              (NationalDiscoveryAwards.com) and local TDEX chapters.
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-950/75 border border-white/15">
+                <div className="font-bold text-[#fcd34d] mb-1">Zero Extra Voting Power</div>
+                <p className="text-slate-300">
+                  Strictly One Verified Human Owner = One Vote under Article 4.1.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950/75 border border-white/15">
+                <div className="font-bold text-[#fcd34d] mb-1">Zero Territory Monopolies</div>
+                <p className="text-slate-300">
+                  Multiple representatives can serve the same district or state—nobody can gatekeep
+                  or block a school.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950/75 border border-white/15">
+                <div className="font-bold text-[#fcd34d] mb-1">Zero Judging or Money Handling</div>
+                <p className="text-slate-300">
+                  Representatives cannot pick Award winners, approve property silos, or collect a
+                  single dollar.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2.5">
-            <h2 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#b47d12]" />
-              <span>2. Classroom Grants Bypass Bureaucratic Overhead</span>
-            </h2>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              The 15% Classroom &amp; School Resource Grant is earmarked strictly for direct classroom books, lab kits, shop tools, and student learning materials—verified by receipts on the open ledger (Article 8.1).
-            </p>
+          {/* Core Duties vs 5 Strict Prohibitions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+              <h3 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
+                <Award className="w-5 h-5 text-emerald-700" />
+                <span>Core Duties (What Representatives DO)</span>
+              </h3>
+              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                <li>
+                  <strong>Public School &amp; Teacher Outreach:</strong> Share official National
+                  Discovery Awards submission guides with teachers, principals, and PTA/parent
+                  groups in working-class and under-resourced districts.
+                </li>
+                <li>
+                  <strong>Application Assistance (Without Interference):</strong> Help teachers and
+                  students understand the three discovery categories (Applied, Analytical, and
+                  Hybrid Discovery under Article 3.3) and meet deadlines on
+                  NationalDiscoveryAwards.com.
+                </li>
+                <li>
+                  <strong>Community Marketplace Workshops:</strong> Host local parent workshops
+                  showing how everyday 50/25/25 buying and selling builds debt-free property silos
+                  that permanently fund the 30% Awards pool.
+                </li>
+                <li>
+                  <strong>Local Feedback &amp; Reporting:</strong> Submit verified community
+                  feedback and outreach updates via <code>TDX-</code> tickets so the 30-person
+                  Owner Board sees where support is needed most.
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-red-50/70 border-2 border-red-200 rounded-xl p-6 space-y-3">
+              <h3 className="font-serif text-lg font-bold text-red-950 inline-flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-700" />
+                <span>5 Strict Prohibitions (FORBIDDEN)</span>
+              </h3>
+              <ol className="list-decimal pl-5 space-y-2 text-xs sm:text-sm text-red-950">
+                <li>
+                  <strong>ZERO Money or Donation Collection:</strong> Never collect cash, checks,
+                  fundraising money, sponsorships, or fees from teachers, parents, or businesses.
+                  Awards funding flows automatically from the 30% net rental split on the open
+                  ledger.
+                </li>
+                <li>
+                  <strong>No Picking or Blocking Winners:</strong> Never score, filter, or veto
+                  Award submissions from your district or state. Judging uses anonymized{' '}
+                  <code>TDX-NDA-</code> IDs independently.
+                </li>
+                <li>
+                  <strong>Strict Student Privacy Shield (FERPA &amp; Article 7):</strong> Never
+                  collect, store, or share student home addresses, phone numbers, SSNs, or private
+                  grades offline. All entries go directly through NationalDiscoveryAwards.com.
+                </li>
+                <li>
+                  <strong>No Partisan Politics or Lobbying:</strong> Never use the TDEX name, logo,
+                  or NDA to endorse candidates, campaign for school board seats, or lobby partisan
+                  legislation.
+                </li>
+                <li>
+                  <strong>No Gatekeeping:</strong> Never tell any teacher or student they “need
+                  permission” from a Representative to apply for an Award.
+                </li>
+              </ol>
+            </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2.5">
-            <h2 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
-              <Building className="w-5 h-5 text-[#b47d12]" />
-              <span>3. Local Debt-Free Property Silos for Districts (Article 1.4 &amp; 9.1)</span>
-            </h2>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              As local families trade on the 50/25/25 Marketplace, communities can designate isolated debt-free property silos whose 30% net rental stream supports regional public school awards alongside the National Laureate pool.
-            </p>
+          {/* Accountability, Recusal & 10/12 Owner Review Jury Removal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2">
+              <h3 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
+                <Scale className="w-5 h-5 text-[#b47d12]" />
+                <span>Automatic Conflict Recusal</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                If a Representative’s own child, relative, or classroom submits an Award entry, the
+                Representative has zero access to judging records and must recuse themselves from
+                any district-level promotion of that specific entry.
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2">
+              <h3 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                <span>12-Person Owner Review Jury Oversight (Article 5.3)</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                If any Representative collects money, violates student privacy, plays favorites, or
+                acts like a political boss, any Owner or teacher can file a <code>TDX-</code>{' '}
+                report. Pipito suspends their Representative status immediately while a randomly
+                drawn 12-person Owner Review Jury reviews the evidence and can permanently revoke
+                their role on a <strong>10/12 vote</strong>.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-2.5">
-            <h2 className="font-serif text-lg font-bold text-[#081d38] inline-flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-700" />
-              <span>4. Strict Student Privacy Firewall (Article 8.4 &amp; 13.2)</span>
-            </h2>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              School districts never upload student Social Security numbers, home addresses, or private academic transcripts to public pages. Concierge automatically strips identifying student details before judging begins, and verified parent/guardian consent is required on every minor entry.
-            </p>
+          {/* Direct Classroom Grants & Silo Architecture Reminder */}
+          <div className="bg-[#fbfaf7] border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="font-bold text-sm text-[#081d38] inline-flex items-center gap-1.5">
+                <Building className="w-4 h-4 text-[#b47d12]" />
+                <span>15% Classroom Resource Grants + Local Debt-Free Property Silos</span>
+              </div>
+              <p className="text-xs text-slate-700">
+                Direct classroom books, lab kits, and shop tools are receipt-verified on the open
+                ledger (Article 8.1), while isolated debt-free silos (Article 9.1) fund the 30%
+                Public Schools Awards pool permanently.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('register')}
+              className="px-4 py-2.5 rounded-lg bg-[#081d38] hover:bg-[#0f2b52] text-[#fcd34d] text-xs font-bold shrink-0 cursor-pointer"
+            >
+              Register as School / State Representative &rarr;
+            </button>
           </div>
         </div>
       )}
 
-      {/* TAB 3: SIGN UP YOUR SCHOOL DISTRICT */}
+      {/* TAB 3: REGISTER AS SCHOOL / STATE REPRESENTATIVE */}
       {activeTab === 'register' && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-5">
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs sm:text-sm text-amber-950 flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <span>
-              <strong>Pre-Launch District Intake Preview (Article 2.2 &amp; 13.1):</strong> District chapters are registering now in preparation for our initial funded award cycle. Zero fees are ever charged to any school, teacher, or district.
+              <strong>DILOS-Screened Representative Intake (Articles 1.3, 3 &amp; 7):</strong> Must
+              hold a KYC-verified human Owner account in good standing with zero fraud flags or Jury
+              removals. Columbo checks standing &amp; conflict disclosures, Pipito confirms zero
+              territory exclusivity or money handling, and an Independent Human Witness logs your
+              active Representative badge on the open ledger.
             </span>
           </div>
 
           <form onSubmit={handleRegisterDistrict} className="space-y-4 max-w-2xl">
+            {/* Liaison vs State Outreach Coordinator Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">
+                Registration Scope (Declare Your Role)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRepScope('district_liaison')}
+                  className={`p-3 rounded-xl border-2 text-left transition-colors cursor-pointer ${
+                    repScope === 'district_liaison'
+                      ? 'bg-[#081d38] text-white border-[#dfa62a]'
+                      : 'bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  <div className="text-xs font-extrabold">School District Liaison</div>
+                  <div
+                    className={`text-[11px] mt-0.5 ${
+                      repScope === 'district_liaison' ? 'text-slate-300' : 'text-slate-600'
+                    }`}
+                  >
+                    Connect a specific public school district, teachers &amp; PTAs
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepScope('state_coordinator')}
+                  className={`p-3 rounded-xl border-2 text-left transition-colors cursor-pointer ${
+                    repScope === 'state_coordinator'
+                      ? 'bg-[#081d38] text-white border-[#dfa62a]'
+                      : 'bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  <div className="text-xs font-extrabold">State Outreach Coordinator</div>
+                  <div
+                    className={`text-[11px] mt-0.5 ${
+                      repScope === 'state_coordinator' ? 'text-slate-300' : 'text-slate-600'
+                    }`}
+                  >
+                    Coordinate non-exclusive statewide public school outreach
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2 space-y-1">
                 <label className="text-xs font-bold text-slate-700">
-                  Official Public School District / Homeschool Co-op Name
+                  {repScope === 'state_coordinator'
+                    ? 'Statewide Outreach Chapter Name'
+                    : 'Specific Public School District Name'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Clark County School District"
+                  placeholder={
+                    repScope === 'state_coordinator'
+                      ? 'e.g., Ohio Statewide Public Schools Outreach'
+                      : 'e.g., Clark County School District'
+                  }
                   value={districtName}
                   onChange={(e) => setDistrictName(e.target.value)}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg"
@@ -306,7 +486,7 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Your Representative Role</label>
+                <label className="text-xs font-bold text-slate-700">Your Background</label>
                 <select
                   value={repTitle}
                   onChange={(e) =>
@@ -322,7 +502,7 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700">
-                  Approximate Public Schools Represented
+                  Approximate Public Schools Reached
                 </label>
                 <input
                   type="number"
@@ -335,28 +515,60 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-700">
-              <label className="flex items-start gap-2 cursor-pointer">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">
+                Conflict-of-Interest Disclosure (Required for Columbo Screening)
+              </label>
+              <textarea
+                rows={2}
+                required
+                placeholder="Disclose any employment or family relationships with local school principals, school board officials, or Award applicants (or write 'None')."
+                value={conflictDisclosure}
+                onChange={(e) => setConflictDisclosure(e.target.value)}
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-2.5 text-xs text-slate-800">
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                  acceptedNoBossRule
+                    ? 'bg-emerald-50 border-emerald-500'
+                    : 'bg-slate-50 border-slate-300 hover:border-[#081d38]'
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={acceptedNoBossRule}
                   onChange={(e) => setAcceptedNoBossRule(e.target.checked)}
-                  className="mt-0.5"
+                  className="w-6 h-6 mt-0.5 rounded accent-[#081d38] shrink-0 cursor-pointer"
                 />
-                <span>
-                  I acknowledge Article 1.3 (Pushers, Not Bosses): representing my district confers zero extra votes and zero gatekeeper control over award scoring.
+                <span className="font-semibold leading-snug">
+                  Representative Code of Honor (Articles 1.3 &amp; 4.1): I confirm I hold zero extra
+                  votes, zero exclusive territory monopoly, zero judging authority, and will NEVER
+                  collect money, donations, or fees—and will recuse myself if any relative or
+                  classroom applies.
                 </span>
               </label>
 
-              <label className="flex items-start gap-2 cursor-pointer">
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                  acceptedChildSafety
+                    ? 'bg-emerald-50 border-emerald-500'
+                    : 'bg-slate-50 border-slate-300 hover:border-[#081d38]'
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={acceptedChildSafety}
                   onChange={(e) => setAcceptedChildSafety(e.target.checked)}
-                  className="mt-0.5"
+                  className="w-6 h-6 mt-0.5 rounded accent-[#081d38] shrink-0 cursor-pointer"
                 />
-                <span>
-                  I confirm all student entries will include verified Parent/Guardian consent and zero minor financial obligations (Articles 4.5 &amp; 13.2).
+                <span className="font-semibold leading-snug">
+                  Student Privacy Pledge (FERPA &amp; Article 7): I will NEVER collect, store, or
+                  share student home addresses, phone numbers, SSNs, or private grades offline; all
+                  entries go directly through the encrypted NationalDiscoveryAwards.com portal with
+                  verified Parent/Guardian consent.
                 </span>
               </label>
             </div>
@@ -364,20 +576,28 @@ export const SchoolDistrictAwardsPage: React.FC = () => {
             <button
               type="submit"
               disabled={!acceptedNoBossRule || !acceptedChildSafety}
-              className="px-5 py-2.5 bg-[#081d38] hover:bg-[#0f2b52] disabled:opacity-40 text-[#dfa62a] text-xs sm:text-sm font-bold rounded-lg inline-flex items-center gap-2 cursor-pointer"
+              className="px-5 py-3 bg-[#081d38] hover:bg-[#0f2b52] disabled:opacity-40 text-[#dfa62a] text-xs sm:text-sm font-bold rounded-xl inline-flex items-center gap-2 cursor-pointer"
             >
               <ClipboardCheck className="w-4 h-4" />
-              <span>Generate District Chapter Intake Receipt</span>
+              <span>Register as School / State Representative</span>
             </button>
 
             {registrationReceipt && (
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1 text-xs sm:text-sm text-emerald-950">
                 <div className="font-bold inline-flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  <span>District Chapter Intake Logged: {registrationReceipt}</span>
+                  <span>Representative Registration Queued for DILOS: {registrationReceipt}</span>
                 </div>
                 <p>
-                  {districtName} ({districtState.toUpperCase()}) &bull; {schoolCount} schools represented &mdash; queued for DILOS Columbo/Pipito verification under Article 1.3 &amp; Article 13.
+                  Role:{' '}
+                  <strong>
+                    {repScope === 'state_coordinator'
+                      ? 'State Outreach Coordinator'
+                      : 'School District Liaison'}
+                  </strong>{' '}
+                  &bull; {districtName} ({districtState.toUpperCase()}) &bull; {schoolCount}{' '}
+                  schools. Queued for Columbo conflict screening, Pipito non-exclusivity check, and
+                  Independent Human Witness open-ledger sign-off.
                 </p>
               </div>
             )}

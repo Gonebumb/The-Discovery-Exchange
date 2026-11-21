@@ -5,6 +5,7 @@ import {
 } from './QuickBridgePreviewModal';
 
 interface HomepageWindowCardConfig extends Omit<HomepageWindowCardData, 'onOpenFullPage' | 'onOpenConstitution'> {
+  titleLine2?: string;
   subtitle?: string;
   image: string;
   description: string;
@@ -16,6 +17,19 @@ interface HomepageWindowGridProps {
   onNavigateByButtonLabel: (navButtonLabel: string) => void;
   onOpenCustomPage: (page: 'columbo' | 'pipito') => void;
 }
+
+const DEXPA_SLIDES = [
+  {
+    src: '/src/assets/images/dexpa_slide_500_gringo_1795200300809.jpg',
+    alt: 'Discovery Exchange Parents Alliance (DEXPA) — Real Owners, Real Property, Real Personality ($500 Rental Property)',
+    cropLeftEdge: true,
+  },
+  {
+    src: '/src/assets/images/dexpa_terrace_students_fixed_1795200580933.jpg',
+    alt: 'Discovery Exchange Parents Alliance (DEXPA) — Come join us, be the next DEXPA — We are the future of DEXPA',
+    cropLeftEdge: false,
+  },
+];
 
 const AUCTION_SLIDES = [
   {
@@ -31,7 +45,7 @@ const AUCTION_SLIDES = [
 const CONSTITUTION_SLIDES = [
   {
     src: '/src/assets/images/card_constitution_bylaws_1794483102280.jpg',
-    alt: 'Tdex/Dexpa Constitution — Master Charter & Bylaws',
+    alt: 'TDEX / DEXPA Constitution — Master Charter & Bylaws',
   },
   {
     src: '/assets/aistudio/image-gen-2_10__abd1c3d6.webp',
@@ -44,30 +58,31 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
     id: 'dexpa',
     title: 'Discovery Exchange Parents Alliance (DEXPA)',
     subtitle: 'Bank Auctions 70/30 Program',
-    image: '/src/assets/images/dxpa_bank_auctions_temple_1794486688802.jpg',
+    image: '/src/assets/images/dexpa_terrace_students_fixed_1795200580933.jpg',
     description:
-      'New to TDEX? DEXPA unites everyday families as equal Owners (1 Owner = 1 Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
+      'New to TDEX? DEXPA unites everyday families as equal Owners (One Owner, One Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
     articleCitation: 'Articles 1, 4.1, 9, 10 & 11',
     quickReminder:
       'Unites everyday parents as equal Owners—turning everyday household trades into shared debt-free real estate, K–12 classroom awards, and our own Federal Credit Union at 1,000 Owners.',
     bridgeExplanation:
-      'New to TDEX? DEXPA unites everyday families as equal Owners (1 Owner = 1 Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
+      'New to TDEX? DEXPA unites everyday families as equal Owners (One Owner, One Vote, zero bosses) to buy bank-auction and courthouse homes 100% debt-free—without risking family savings. Families build separate balances in licensed wallets (like PayPal, $0 fees from TDEX) to fund licensed seller-side escrow directly, splitting clean net rent 70% to Owners and 30% to K–12 school awards. At 1,000 verified Owners, we file with the NCUA to charter our own 100% Owner-owned Federal Credit Union.',
     keyTakeaways: [
-      'Why families unite: 1 Verified Human Owner = 1 Vote, zero corporate or Wall Street bosses.',
+      'Why families unite: One Owner, One Vote, zero corporate or Wall Street bosses.',
       'Your own separate wallet ($0 TDEX fees): 25% Marketplace credits accumulate in your PayPal or licensed wallet until matched to seller-side escrow.',
       'Debt-free rental homes: Clean net rent splits 70% to participating families and 30% to K–12 teacher & student awards.',
       'At 1,000 verified Owners, we file with the NCUA to charter our own federally insured, 100% Owner-owned Federal Credit Union.',
     ],
-    targetRouteLabel: 'Parents Alliance (Dexpa)',
-    navButtonLabel: 'Parents Alliance (Dexpa)',
+    targetRouteLabel: 'Parents Alliance (DEXPA)',
+    navButtonLabel: 'Parents Alliance (DEXPA)',
   },
   {
     id: 'marketplace',
     title: 'Discovery Marketplace',
+    titleLine2: 'Online Garage Sale',
     subtitle: '50/25/25 Program',
-    image: '/src/assets/images/card_marketplace_trading_1794483101968.jpg',
+    image: '/src/assets/images/online_discovery_marketplace_1795199437252.jpg',
     description:
-      'Turn everyday household items you no longer use into real estate ownership—without touching family savings. Whenever an item sells on our $0-fee Marketplace, your licensed payment processor (such as PayPal) automatically splits checkout three ways: 50% goes straight to the seller in immediate spending cash, 25% builds the seller’s separate property wallet, and 25% builds the buyer’s separate property wallet. Every purchase or sale moves your family closer to owning debt-free rental property while funding K–12 schools.',
+      'Turn everyday household items you no longer use into real estate ownership online—without touching family savings. Whenever an item sells on our $0-fee Online Garage Sale Marketplace, your licensed payment processor (such as PayPal) automatically splits checkout three ways: 50% goes straight to the seller in immediate spending cash, 25% builds the seller’s separate property wallet, and 25% builds the buyer’s separate property wallet. Every online purchase or sale moves your family closer to owning debt-free rental property while funding K–12 schools.',
     articleCitation: 'Article 12.1',
     quickReminder:
       'Try the interactive 50/25/25 garage-sale trade walkthrough and calculator—see the exact split step by step without charging a card.',
@@ -84,8 +99,9 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
   {
     id: 'brick_coin',
     title: 'Discovery Brick Coin',
-    subtitle: 'limited to only 100,000,000 units',
-    image: '/src/assets/images/card_brickcoin_space_earth_1794487607662.jpg',
+    titleLine2: 'Meet the Next Hottest Cryptocurrency',
+    subtitle: 'Limited to Only 100,000,000 Units',
+    image: '/assets/aistudio/brickcoin_hero_fixed.jpg',
     description:
       'Discovery Brick Coins (DBC) are strictly capped at 100,000,000 units forever and are never sold as speculative crypto. Instead, DBC rewards verified K–12 teacher and student breakthroughs and gives participating Owners a clean, transferable door out if life circumstances change—allowing families to transfer their recorded position without ever forcing the sale or mortgaging of the underlying community apartment buildings, which stay 100% debt-free and protected in trust.',
     articleCitation: 'Article 11, Article 14 & Schedule A',
@@ -103,60 +119,60 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
   },
   {
     id: 'constitution',
-    title: 'Tdex/Dexpa Constitution',
+    title: 'TDEX / DEXPA Constitution',
     image: '/src/assets/images/card_constitution_bylaws_1794483102280.jpg',
     description:
-      'Full searchable Constitution covering One-Owner One-Vote governance, 100M DBC Cap, 50/25/25 Marketplace, and Debt-Free Silos.',
+      'Full searchable Constitution covering One Owner, One Vote governance, 100M DBC Cap, 50/25/25 Marketplace, and Debt-Free Silos.',
     articleCitation: 'Articles 1–21 & Schedules A–E (v10.0)',
     quickReminder:
       'Open the full searchable Charter to walk through every article on governance, isolated silos, DILOS safeguards, and public schools awards math.',
     bridgeExplanation:
-      'Browse and search all 21 Articles of Charter Version 10.0—covering 1 Human Owner = 1 Vote governance, debt-free isolated silos, DILOS separation of duties, and Funded-First prize rules.',
+      'Browse and search all 21 Articles of Charter Version 10.0—covering One Owner, One Vote governance, debt-free isolated silos, DILOS separation of duties, and Funded-First prize rules.',
     keyTakeaways: [
       'Searchable 21-article Constitution ready to inspect and review.',
-      'No Bosses in governance (1 Human Owner = 1 Vote).',
+      'No Bosses in governance (One Owner, One Vote).',
       'Motto: "Let us sit crooked, but let us talk straight."',
     ],
-    targetRouteLabel: 'Tdex Constitution',
-    navButtonLabel: 'Tdex Constitution',
+    targetRouteLabel: 'TDEX Constitution',
+    navButtonLabel: 'TDEX Constitution',
   },
   {
     id: 'mom_pop_boardroom',
-    title: 'Mom and Pop Boardroom',
+    title: 'Mom & Pop Board',
     image: '/src/assets/images/card_district_reps_1794483101400.jpg',
     description:
-      'Governance Model: 30-person Owner Board chosen by random draw with staggered terms and no permanent corporate bosses.',
+      'Governance Model: 30-person Mom & Pop Board chosen by random draw with staggered terms and no permanent corporate bosses.',
     articleCitation: 'Articles 4.1, 5.1, 5.2 & 5.4',
     quickReminder:
-      'Rotating 30-person Owner Board chosen by random draw so everyday families—never entrenched bosses—steer priorities.',
+      'Rotating 30-person Mom & Pop Board chosen by random draw so everyday families—never entrenched bosses—steer priorities.',
     bridgeExplanation:
-      'Instead of self-perpetuating boards, 30 Owners in good standing rotate by random selection on staggered terms, with conflict recusal and removal-for-cause rules.',
+      'Instead of self-perpetuating boards, 30 Owners in good standing rotate on the Mom & Pop Board by random selection on staggered terms, with conflict recusal and removal-for-cause rules.',
     keyTakeaways: [
-      '30-person Owner Board chosen by random draw among verified Owners.',
+      '30-person Mom & Pop Board chosen by random draw among verified Owners.',
       'Clear eligibility, conflict recusal, and 2/3 removal-for-cause rules (Article 5.4 & 6.2).',
-      'Zero entrenched corporate bosses—1 Human Owner = 1 Vote.',
+      'Zero entrenched corporate bosses—One Owner, One Vote.',
     ],
-    targetRouteLabel: 'Mom Pop Board',
-    navButtonLabel: 'Mom Pop Board',
+    targetRouteLabel: 'Mom & Pop Board',
+    navButtonLabel: 'Mom & Pop Board',
   },
   {
     id: 'arbitration_court',
     title: 'Internal Arbitration Court',
     image: '/src/assets/images/card_arbitration_court_scales_1794487611446.jpg',
     description:
-      'Internal Review: 12-person out-of-state Owner Jury drawn at random with conflict screening and full legal court rights preserved.',
+      'Internal Review: 12-person out-of-state Owner Jury drawn at random with conflict screening and full legal rights preserved.',
     articleCitation: 'Articles 5.3, 16 & 17',
     quickReminder:
       'Resolves internal audit reviews through 12 unrelated out-of-state Owners—never blocking public courts.',
     bridgeExplanation:
-      '12 conflict-screened out-of-state Owners drawn at random review anonymized evidence packets with mandatory recusal and full court rights preserved.',
+      '12 conflict-screened out-of-state Owners drawn at random review anonymized evidence packets with mandatory recusal and full legal rights preserved.',
     keyTakeaways: [
       'Random 12-Owner jury panel screened for state, family, and vendor conflicts.',
       'Reviews anonymized packets without student PII.',
-      'Preserves full legal court rights (Article 17) and external reporting.',
+      'Preserves full legal rights (Article 17) and external reporting.',
     ],
-    targetRouteLabel: 'International Jury Duty / Arbitration Board',
-    navButtonLabel: 'International Jury Duty / Arbitration Board',
+    targetRouteLabel: 'Internal Arbitration Court',
+    navButtonLabel: 'Internal Arbitration Court',
   },
   {
     id: 'ai_columbo',
@@ -235,7 +251,7 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
       'Permanent 70% Owners / 30% National Discovery Awards net rent split (Article 11.3).',
     ],
     targetRouteLabel: 'Auction & Silo Watch',
-    navButtonLabel: '17. Auction & Silo Watch',
+    navButtonLabel: 'Auction & Silo Watch',
   },
   {
     id: 'concierge_card',
@@ -272,8 +288,8 @@ const FIFTEEN_WINDOW_CARDS: HomepageWindowCardConfig[] = [
       'Live surprise 2-minute verification prompt stops pre-packaged adult ghost-builds.',
       'Free downloadable Classroom Build Sheets shared openly under Schedule E.',
     ],
-    targetRouteLabel: '15. Discovery Studio',
-    navButtonLabel: '15. Discovery Studio',
+    targetRouteLabel: 'Discovery Studio',
+    navButtonLabel: 'Discovery Studio',
   },
   {
     id: 'national_discovery_awards',
@@ -338,12 +354,14 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
   onNavigateByButtonLabel,
   onOpenCustomPage,
 }) => {
+  const [dexpaIdx, setDexpaIdx] = useState(0);
   const [auctionIdx, setAuctionIdx] = useState(0);
   const [constitutionIdx, setConstitutionIdx] = useState(0);
   const [selectedBridgeCard, setSelectedBridgeCard] = useState<HomepageWindowCardData | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
+      setDexpaIdx((prev) => (prev + 1) % DEXPA_SLIDES.length);
       setAuctionIdx((prev) => (prev + 1) % AUCTION_SLIDES.length);
       setConstitutionIdx((prev) => (prev + 1) % CONSTITUTION_SLIDES.length);
     }, 4500);
@@ -367,7 +385,7 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
         }
       },
       onOpenConstitution: () => {
-        onNavigateByButtonLabel('Tdex Constitution');
+        onNavigateByButtonLabel('TDEX Constitution');
       },
     });
   };
@@ -383,9 +401,12 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
       className="bg-white border-[3px] border-[#071936] rounded-[30px] overflow-hidden flex flex-col text-center shadow-xs hover:shadow-xl transition-shadow"
     >
       {/* Navy Card Header */}
-      <div className="bg-[#071936] text-white px-4 py-3.5 min-h-[76px] md:min-h-[84px] flex flex-col items-center justify-center border-b-2 border-[#dfa62a]/70">
+      <div className="bg-[#071936] text-white px-4 py-3.5 min-h-[84px] md:min-h-[96px] flex flex-col items-center justify-center border-b-2 border-[#dfa62a]/70">
         <h3 className="font-serif text-[clamp(0.95rem,1.22vw,1.15rem)] font-bold leading-snug text-white">
           {card.title}
+          {card.titleLine2 && (
+            <span className="block whitespace-nowrap">{card.titleLine2}</span>
+          )}
         </h3>
         {card.subtitle && (
           <p className="font-serif text-[clamp(0.86rem,1.08vw,1.02rem)] font-bold leading-snug text-[#fcd34d] mt-0.5">
@@ -400,7 +421,21 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
           onClick={() => openBridgeModal(card)}
           className="relative aspect-[16/9] w-full rounded-[20px] border-[2.5px] border-[#071936] overflow-hidden bg-[#071936] cursor-pointer group"
         >
-          {card.id === 'bank_auctions' ? (
+          {card.id === 'dexpa' ? (
+            <>
+              {DEXPA_SLIDES.map((slide, idx) => (
+                <img
+                  key={slide.src}
+                  src={slide.src}
+                  alt={slide.alt}
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+                    slide.cropLeftEdge ? 'scale-[1.06] origin-right' : ''
+                  } ${idx === dexpaIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                />
+              ))}
+            </>
+          ) : card.id === 'bank_auctions' ? (
             <>
               {AUCTION_SLIDES.map((slide, idx) => (
                 <img
@@ -443,14 +478,14 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
               <div className="brickcoin-stage absolute right-[3%] top-[7%] bottom-[7%] aspect-square flex items-center justify-center">
                 <div className="brickcoin-spinner relative w-full h-full rounded-full drop-shadow-[0_0_18px_rgba(252,211,77,0.45)]">
                   <img
-                    src="/assets/home/brickcoin_front_clean.webp"
+                    src="/assets/home/brickcoin_front_clean.webp?v=20261120"
                     alt="Discovery Brick Coin — Local Districts & National Prizes (1776–2026)"
                     referrerPolicy="no-referrer"
                     className="brickcoin-face absolute inset-0 w-full h-full object-contain rounded-full"
                   />
                   <img
-                    src="/assets/home/brickcoin_back_clean.webp"
-                    alt="Discovery Brick Coin — DB Real Estate Backed Reserve"
+                    src="/assets/home/brickcoin_front_clean.webp?v=20261120"
+                    alt="Discovery Brick Coin — Real Estate Backed Reserve (1776–2026)"
                     referrerPolicy="no-referrer"
                     className="brickcoin-face brickcoin-face-back absolute inset-0 w-full h-full object-contain rounded-full"
                   />
@@ -511,7 +546,7 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {rowOneCards.map(renderCard)}
       </div>
 
@@ -522,17 +557,17 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
             The Governance of The Discovery Exchange
           </h2>
           <p className="text-sm sm:text-base text-[#fcd34d] font-bold">
-            This Is How We Are Governed — 1 Human Owner = 1 Vote
+            This Is How We Are Governed — One Owner, One Vote
           </p>
           <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-normal max-w-4xl mx-auto">
             No permanent corporate bosses and no backroom control—everyday parent Owners govern
-            through our searchable Constitution, a randomly drawn 30-person Mom and Pop Board, and
-            a 12-person out-of-state Owner Arbitration Jury.
+            through our searchable Constitution, a randomly drawn 30-person Mom &amp; Pop Board, and
+            a 12-person out-of-state Internal Arbitration Court.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {rowTwoCards.map(renderCard)}
       </div>
 
@@ -553,7 +588,7 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {rowThreeCards.map(renderCard)}
       </div>
 
@@ -570,7 +605,7 @@ export const HomepageWindowGrid: React.FC<HomepageWindowGridProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[clamp(0.85rem,1.6vw,2rem)]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {remainingCards.map(renderCard)}
       </div>
 

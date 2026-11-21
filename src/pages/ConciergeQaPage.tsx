@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { HelpCircle, Search } from 'lucide-react';
 
-interface QaEntry {
+export interface QaEntry {
   number: number;
   section: string;
   question: string;
@@ -9,7 +9,7 @@ interface QaEntry {
   citation: string;
 }
 
-const MASTER_QA_150: QaEntry[] = [
+export const MASTER_QA_150: QaEntry[] = [
   // SECTION 1: CORE IDENTITY, OWNERSHIP & NO BOSSES (Q1–Q10)
   {
     number: 1,
@@ -78,9 +78,9 @@ const MASTER_QA_150: QaEntry[] = [
   {
     number: 9,
     section: '1. Core Identity, Ownership & No Bosses (Q1–Q10)',
-    question: 'What is the relationship between The Discovery Exchange and the Discovery Exchange Parents Alliance (Dexpa)?',
+    question: 'What is the relationship between The Discovery Exchange and the Discovery Exchange Parents Alliance (DEXPA)?',
     answer:
-      'Under Article 2.1, The Discovery Exchange (thediscoveryexchange.com) is the umbrella platform and architectural engine, while the Discovery Exchange Parents Alliance (Dexpa) participates as the family, parent, and community governance body under adopted organizing documents.',
+      'Under Article 2.1, The Discovery Exchange (TheDiscoveryExchange.com) is the umbrella platform and architectural engine, while the Discovery Exchange Parents Alliance (DEXPA) participates as the family, parent, and community governance body under adopted organizing documents.',
     citation: 'Article 2.1',
   },
   {
@@ -1029,7 +1029,7 @@ const MASTER_QA_150: QaEntry[] = [
   // SECTION 13: OPEN THE LEDGER, PAST HISTORY, SCIENCE LAB & NATIONAL REWARD PROGRAM (Q125–Q136)
   {
     number: 125,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'What is "Open The Ledger" (Channel #19 — Open Append-Only Ledger)?',
     answer:
       'Channel #19 is our live Article 8.3 transparency terminal. It connects to `/api/ledger/public` to display the append-only, SHA-256 hash-chained block sequence created whenever an Owner registration, 50/25/25 walkthrough, or blind NDA packet runs through the 4-stage DILOS pipeline.',
@@ -1037,7 +1037,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 126,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'What is the 22/22 Deterministic Protocol Invariant Self-Check on Open The Ledger?',
     answer:
       'Open The Ledger continuously runs 22 deterministic verification checks against `brickcoinProtocolEngine.ts`—proving in real time that the 100M DBC hard cap, 50/25/25 integer-cent splits, 70/30 net rent ratios, zero-presale gates, and composite SHA-256 state root hold with 22/22 PASS status.',
@@ -1045,7 +1045,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 127,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'What does "WALKTHROUGH AUDIT ACTIVE" mean on the Open The Ledger page?',
     answer:
       'It confirms `productionRealMoneyHold` is active during open review and build—meaning visitors and auditors can test real SHA-256 hash-chaining and math splits cleanly without any real bank movement occurring.',
@@ -1053,7 +1053,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 128,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'How does Open The Ledger publish full audit blocks without exposing student or family identities?',
     answer:
       'Under Article 8.4, Concierge strips names, emails, phone numbers, and street addresses into an air-gapped PII Vault before ledger hashing, so the public Open Ledger displays only cryptographic hashes, event types, math audits, and Witness IDs.',
@@ -1061,31 +1061,31 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 129,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
-    question: 'What is preserved inside Channel #20 (Past History & Lessons)?',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
+    question: 'What is preserved inside History & Lessons?',
     answer:
-      'Past History preserves our unbroken evolution from Version 1.8 through Master Charter Version 10.0—including all 21 rejected branding directions, the 7 Constitutional Pillars, the 12-Step Continuity Protocol, and downloadable source PDFs.',
+      'History preserves our unbroken evolution from Version 1.8 through Master Charter Version 10.0—including all 21 rejected branding directions, the 7 Constitutional Pillars, the 12-Step Continuity Protocol, and downloadable source PDFs.',
     citation: 'Schedule E & Master History',
   },
   {
     number: 130,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
-    question: 'What was the Version G 7.5r Stress Test Evaluation Report in Past History?',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
+    question: 'What was the Version G 7.5r Stress Test Evaluation Report in History?',
     answer:
       'It was a forensic adversarial audit that uncovered 12 Red-Light blockers and 3 Yellow wording fixes—leading directly to hardened safeguards like the Funded-First rule, Single-Season Oversight rotation, explicit non-custodial escrow flow, and adult-only 18+ chat rules.',
     citation: 'Version G 7.5r Audit Report',
   },
   {
     number: 131,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
-    question: 'What are the "7 Forbidden AI Regressions" documented in Past History & Schedule E?',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
+    question: 'What are the "7 Forbidden AI Regressions" documented in History & Schedule E?',
     answer:
       'No AI or future developer may ever re-introduce: (1) corporate CEOs or bosses over voting, (2) wealth-weighted voting, (3) mortgages or debt on silos, (4) minting above 100M DBC or ahead of deeds, (5) hidden listing skims, (6) putting minors in financial risk, or (7) capturing the 1% Future AI Reserve.',
-    citation: 'Schedule E & Past History',
+    citation: 'Schedule E & History',
   },
   {
     number: 132,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'How do the Discovery Studio Comedy Chronicles fit alongside serious student prizes?',
     answer:
       'Series like Studio Desk, Trail & Donkey, and Next Dimension use plain-spoken kitchen-table humor to teach hard lessons about AI drift and common sense under Article 6.3 as a non-prize showcase—kept strictly separate from blind public school judging.',
@@ -1093,7 +1093,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 133,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'What can students and teachers do inside the Free 3D Molecular Science Lab?',
     answer:
       'At $0 cost and with no login wall, students and public school teachers can inspect interactive 3D protein and compound structures (powered by `3dmol`, AlphaFold, RCSB PDB, and PubChem) alongside live Europe PMC and arXiv research queries.',
@@ -1101,7 +1101,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 134,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'What is the Garage Lab inside the Science Lab page?',
     answer:
       'The Garage Lab highlights practical $0–low-cost student invention builds with transparent Bills of Materials (BOM), everyday parts sources, scientific principles, and linked 3D molecules across Applied, Analytical, and Hybrid Discovery.',
@@ -1109,7 +1109,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 135,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'How does the National Reward Program enforce its "One Season, One Team" rule?',
     answer:
       'Before any prize cycle opens, 6 to 10 verified human Owners from different states are randomly drawn as a Single-Season Oversight Council. Once that season closes, every member of that council is permanently barred from serving on a Reward Council or Judging Panel again.',
@@ -1117,7 +1117,7 @@ const MASTER_QA_150: QaEntry[] = [
   },
   {
     number: 136,
-    section: '13. Open The Ledger, Past History, Science Lab & Reward Program (Q125–Q136)',
+    section: '13. Open The Ledger, History, Science Lab & Reward Program (Q125–Q136)',
     question: 'How are National Discovery Awards split across the 4 Protected Buckets (50% / 25% / 15% / 10%)?',
     answer:
       'Once Funded-First cash sits verified in the segregated trust ($1M District / $2.5M State / $10M National 2035 target ladder), verified awards split 50% to a protected Student Education Fund (529 or trust), 25% to mentoring public school teachers, 15% to classroom tools, and 10% into debt-free endowment silos.',
@@ -1224,7 +1224,7 @@ const MASTER_QA_150: QaEntry[] = [
   {
     number: 149,
     section: '14. Universal AI Operating Laws (Laws 1–15) & Safeguards (Q137–Q150)',
-    question: 'Why does the site header place National Discovery Awards–NDA first above The Discovery Exchange–Tdex?',
+    question: 'Why does the site header place National Discovery Awards (NDA) first above The Discovery Exchange (TDEX)?',
     answer:
       'Because honoring great public school teachers and uplifting working-class students is the #1 mission at the top, and The Discovery Exchange is the transparent marketplace and debt-free property engine underneath built to fund it.',
     citation: 'Article 2.1 & Article 3.1',
@@ -1232,10 +1232,140 @@ const MASTER_QA_150: QaEntry[] = [
   {
     number: 150,
     section: '14. Universal AI Operating Laws (Laws 1–15) & Safeguards (Q137–Q150)',
-    question: 'How do NationalDiscoveryAwards.com and thediscoveryexchange.com separate Marketplace activity from Prize Awards & Donations?',
+    question: 'How do NationalDiscoveryAwards.com and TheDiscoveryExchange.com separate Marketplace activity from Prize Awards & Donations?',
     answer:
-      'The Discovery Exchange (`thediscoveryexchange.com`) runs the everyday peer-to-peer Marketplace (using licensed external payment processors with zero money handling by TDEX) and open architectural blueprint, while `NationalDiscoveryAwards.com` administers the National Public Schools Discovery Awards program and charitable prize/donation channels once legal readiness is finalized. `thediscoveryexchange.com` will be active when open to public completely.',
+      'The Discovery Exchange (`TheDiscoveryExchange.com`) runs the everyday peer-to-peer Marketplace (using licensed external payment processors with zero money handling by TDEX) and open architectural blueprint, while `NationalDiscoveryAwards.com` administers the National Public Schools Discovery Awards program and charitable prize/donation channels once legal readiness is finalized. TheDiscoveryExchange.com will be fully active upon public launch.',
     citation: 'Articles 2.1, 12.1 & 15.1',
+  },
+
+  // SECTION 15: BOARD POWER HANDOVER, SCHOOL REPRESENTATIVES & LEGAL SAFETY POLICIES (Q151–Q160)
+  {
+    number: 151,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How is power handed over from outgoing Owner Board members to incoming Board members?',
+    answer:
+      'Under Article 5.1, only 10 of the 30 Board seats rotate per cycle while 20 continuing members remain in place for stability. During a strict 14-day transition window, outgoing members are barred from rushing last-minute spending, must deliver a complete open-ledger Transition Dossier on active property silos and Awards cycles, and automatically have their Board voting credentials switched over to the 10 newly drawn, sworn-in Owners at the exact transition timestamp after DILOS and Human Witness sign-off.',
+    citation: 'Master Charter Article 5.1 & Article 7',
+  },
+  {
+    number: 152,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'Can an outgoing Board member refuse to leave or withhold bank accounts and passwords?',
+    answer:
+      'Never. TDEX holds zero money, all official records live permanently on the open ledger, and Board voting permissions switch over automatically at the scheduled transition timestamp. If an outgoing member attempts to obstruct the 14-day handoff, the 20 continuing Board members and Columbo pull records straight from the immutable ledger and refer them to a 12-person Owner Review Jury hearing.',
+    citation: 'Master Charter Article 5.1, 5.3 & Article 7',
+  },
+  {
+    number: 153,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How do School District and State Representatives work on TDEX?',
+    answer:
+      'School District and State Representatives are verified human Owners who volunteer to connect local public school teachers, parents, and working-class students with The National Discovery Awards (NationalDiscoveryAwards.com) and local TDEX chapters. They hold zero extra votes, zero exclusive territory monopolies, and zero authority to pick Award winners.',
+    citation: 'Master Charter Article 1.3, Article 3 & Article 7',
+  },
+  {
+    number: 154,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'Can a School District or State Representative collect donations or fees from schools or parents?',
+    answer:
+      'Never. Representatives are strictly forbidden from collecting money, donations, or fees. All Awards funding comes automatically from the 30% net rental income split generated by debt-free property silos.',
+    citation: 'Master Charter Article 1.3 & Article 3',
+  },
+  {
+    number: 155,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'Do teachers or students need a Representative’s permission to apply for The National Discovery Awards?',
+    answer:
+      'No. Any eligible public school teacher or working-class student can submit directly through NationalDiscoveryAwards.com without needing approval from a local Representative.',
+    citation: 'Master Charter Article 1.3 & Article 3.3',
+  },
+  {
+    number: 156,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How do School District and State Representatives protect student privacy?',
+    answer:
+      'Representatives are forbidden from collecting or storing student personal data offline. Under Article 7 (Intake & Privacy Shield), all submissions go directly through the encrypted portal, which automatically strips student home addresses and phone numbers before independent judging.',
+    citation: 'FERPA & Master Charter Article 7',
+  },
+  {
+    number: 157,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'What are the Local Pickup Safety rules and how does the 4-digit Pickup Confirmation Code work?',
+    answer:
+      'TDEX strongly recommends meeting only in daylight at public locations—such as police department Safe Exchange Zones, bank lobbies, or busy grocery parking lots—and never inside private homes alone. Buyers must thoroughly inspect the item BEFORE handing over their 4-digit Pickup Confirmation Code; once the code is entered, the local pickup is final.',
+    citation: 'Local Pickup & Safe Meetup Policy',
+  },
+  {
+    number: 158,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'What happens if a buyer files an external PayPal or credit card chargeback instead of using the 12-person Owner Review Jury?',
+    answer:
+      'Community trade disputes must go first to the 12-person Owner Review Jury under Article 5.3. If a buyer files an external chargeback after delivery, Columbo submits the carrier delivery tracking or 4-digit Pickup Confirmation Code log as evidence to the payment processor, unearned 25% buyer accumulation credits are adjusted off the ledger, and fraudulent chargebacks result in permanent account suspension.',
+    citation: 'Terms of Service & Article 5.3',
+  },
+  {
+    number: 159,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'Which items are prohibited on The Discovery Marketplace?',
+    answer:
+      'Sellers are barred from listing recalled baby cribs, used/expired car seats, prescription medications, weapons or firearms, gift cards or cash vouchers, live animals, alcohol/tobacco/vapes, or stolen/illegal goods. Every listing requires checking the mandatory safety confirmation box before submission.',
+    citation: 'Prohibited Categories & Recall Policy',
+  },
+  {
+    number: 160,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How does Human Support Escalation work for urgent safety issues, legal subpoenas, or bugs?',
+    answer:
+      'Whenever the Concierge encounters an urgent safety issue, legal subpoena, child-protection alert, or technical bug outside the Official Q&A, it logs a tracked TDX- escalation ticket routed to a verified human support reviewer within 24–48 hours (and urgent safety/legal notices can also be sent directly to robo@thediscoveryexchange.com).',
+    citation: 'Accessibility & Human Support Escalation Policy',
+  },
+  {
+    number: 161,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'What are the 3 delivery and shipping options when I click Post an Item?',
+    answer:
+      'When you click Post an Item and complete Publish Listing on the Discovery Marketplace, you choose 1 of 3 delivery options: (1) Local Pickup Only (using the 4-digit Pickup Confirmation Code at a public Safe Exchange Zone), (2) Free Shipping, or (3) Flat-Rate Shipping where 100% of the shipping fee goes straight to the seller. Shipped orders require uploading valid carrier tracking via the Add Tracking button within 5 business days.',
+    citation: 'Article 12.1 & Marketplace Shipping Policy',
+  },
+  {
+    number: 162,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How does the Two-Way 1–5 Star Verified Rating System prevent revenge reviews?',
+    answer:
+      'Both buyer and seller submit 1–5 star ratings blindly—neither rating is revealed until both parties seal their review (Simultaneous Blind Reveal). If either party believes a review is false or abusive, they can click File a Dispute to appeal directly to a randomly drawn 12-person Owner Review Jury under Article 5.3.',
+    citation: 'Marketplace Rating System & Article 5.3',
+  },
+  {
+    number: 163,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'Does TDEX inspect, own, or guarantee items sold on the Discovery Marketplace?',
+    answer:
+      'No. Under the Marketplace Disclaimer, TDEX provides the zero-fee peer-to-peer board only and does not inspect, own, or guarantee listed items—individual sellers are responsible for accuracy, safety, and legality and must confirm zero prohibited or recalled items before clicking Publish Listing.',
+    citation: 'Marketplace Disclaimer & Prohibited Items Policy',
+  },
+  {
+    number: 164,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'What is the 60-Second 100% Failed-Deal Refund Protection on Seller-Side Escrow?',
+    answer:
+      'Because your funds stay in your own regulated account until a debt-free property matches, if an auction property fails appraisal, licensed inspection, clean title, or minimum funding, 100% Failed-Deal Refund Protection ensures zero funds are trapped and buyers retain 100% of their funds immediately.',
+    citation: 'A-to-Z Blueprint Part III & Article 10.5',
+  },
+  {
+    number: 165,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'How does TDEX handle IRS 1099-K taxes, Family Inheritance, Dormant Accounts, and Emergency Security Pauses?',
+    answer:
+      'Part XI of the A-to-Z Blueprint covers all operational edge cases: regulated third-party processors (such as PayPal) and property silos issue applicable tax forms (1099-K / K-1); Owners designate legal family beneficiaries for seamless inheritance of Property Nuggets and vested Discovery Brick Coins (DBC); dormant accounts follow multi-notice family contact rules; and Pipito plus the 30-person Owner Board (20-member quorum, 72-hour review window) can invoke a logged 48-hour Emergency Security Circuit-Breaker to halt exploits without altering balances.',
+    citation: 'A-to-Z Blueprint Parts VII & XI',
+  },
+  {
+    number: 166,
+    section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
+    question: 'What is The Discovery Exchange Challenge in the top navigation bar?',
+    answer:
+      'The Discovery Exchange Challenge (Build the Block) is a 100% free-to-play interactive educational simulation available immediately in the top navigation bar with zero sign-up friction. Players start with $100 Practice Funds, trade household items using the 50/25/25 split, reject bank mortgage traps, clear the 3-step DILOS Audit Gate, and close a virtual debt-free building to experience 70/30 Family & NDA rental splits using Practice Points only (zero real funds, zero entry fees, and zero real Discovery Brick Coins).',
+    citation: 'The Discovery Exchange Challenge & Article 3.3',
   },
 ];
 

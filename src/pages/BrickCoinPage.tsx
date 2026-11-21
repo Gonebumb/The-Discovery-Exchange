@@ -108,7 +108,7 @@ export const BrickCoinPage: React.FC = () => {
 
           <div className="p-4 rounded-xl bg-slate-950/80 border border-white/15 space-y-1">
             <div className="text-xs font-bold uppercase text-sky-300">3. Zero Vote Buying</div>
-            <div className="text-base font-bold text-white">1 Verified Human Owner = 1 Vote</div>
+            <div className="text-base font-bold text-white">One Owner, One Vote</div>
             <p className="text-xs text-slate-300 leading-relaxed">
               Under Articles 4.1 &amp; 14.4, holding DBC confers zero extra governance votes—preserving strict human Owner equality forever.
             </p>

@@ -1,10 +1,10 @@
 # National Discovery Awards / The Discovery Exchange
 # Primary Domain: https://nationaldiscoveryawards.com (Companion: https://thediscoveryexchange.com)
 
-> No financial transactions will be welcomed until January 1st, 2027.
-> OPEN PROJECT STILL UNDER CONSTRUCTION · FOR PUBLIC REVIEWS & CRITICISM ONLY.
+> Zero-money-handling non-custodial software platform ($0 TDEX fees).
+> OPEN PROJECT UNDER ACTIVE PUBLIC REVIEW & BUILD · TheDiscoveryExchange.com will be fully active upon public launch.
 
 ## Core Mission & Architecture
-- **The National Discovery Prize:** Empowering great public school teachers and working-class students (50% Student Education Fund, 25% Mentoring Teachers, 15% Classroom Tools, 10% Permanent Endowment).
-- **Three Interlocked Foundations:** 1. Dexpa (70/30 Cooperative Debt-Free Real Estate), 2. The Discovery Marketplace (50/25/25 Online Garage Sale), and 3. Discovery Brick Coin (DBC, 100M Fixed Supply).
-- **Open for Public Review & Walkthroughs:** Visitors and crawlers are welcome to read the Constitution, explore rooms, and test interactive walkthroughs. Live real-money billing remains off until launch.
+- **The National Discovery Awards (NDA):** Empowering great public school teachers and working-class students (50% Student Education Fund, 25% Mentoring Teachers, 15% Classroom Tools, 10% Permanent Endowment).
+- **Three Interlocked Foundations:** 1. DEXPA (70/30 Cooperative Debt-Free Real Estate), 2. The Discovery Marketplace (50/25/25 Online Garage Sale), and 3. Discovery Brick Coin (DBC, 100M Fixed Supply).
+- **Open for Public Review & Walkthroughs:** Visitors and crawlers are welcome to read the Constitution, explore rooms, and test interactive walkthroughs. Live real-money checkout remains off until launch.

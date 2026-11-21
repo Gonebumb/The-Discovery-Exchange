@@ -2,23 +2,32 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Award,
+  BookOpen,
   Building2,
   CheckCircle2,
   Coins,
   Filter,
+  Gavel,
   Home,
+  ImagePlus,
+  Layers,
   Lock,
+  MapPin,
   PackagePlus,
   Receipt,
   RefreshCw,
   Search,
   ShieldCheck,
   ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
+  Star,
   Tag,
+  Truck,
   Wallet,
   X,
 } from "lucide-react";
+import { getOwnerToken } from "../lib/ownerSession";
 import {
   AUTHORIZED_SUPPLY_CEILING,
   CONSTITUTIONAL_DBC_POOLS,
@@ -39,7 +48,10 @@ interface DiscoveryMarketViewProps {
 interface GarageItem {
   id: string;
   title: string;
-  category: "Science & Education" | "Tools & Workshop" | "Music & Arts" | "Bikes & Sports";
+  category: string;
+  material: string;
+  itemType: string;
+  imageUrl: string;
   price: number;
   location: string;
   sellerFamily: string;
@@ -48,6 +60,79 @@ interface GarageItem {
   condition: string;
   badge?: string;
   iconType: string;
+  deliveryMethod?: "local_pickup" | "free_shipping" | "flat_rate_shipping";
+  shippingFeeUsd?: number;
+}
+
+const DEFAULT_PHOTO_BY_ID: Record<string, string> = {
+  "item-telescope": "/src/assets/images/market_telescope_1795215571680.jpg",
+  "item-tool-chest": "/src/assets/images/market_tool_chest_1795215571467.jpg",
+  "item-violin": "/src/assets/images/market_violin_1795215572717.jpg",
+  "item-trail-bike": "/src/assets/images/market_mountain_bike_1795215572605.jpg",
+  "item-microscope": "/src/assets/images/market_microscope_1795215589823.jpg",
+  "item-workbench": "/src/assets/images/market_workbench_1795215590068.jpg",
+  "item-3d-printer": "/src/assets/images/market_3d_printer_1795215590079.jpg",
+  "item-electric-guitar": "/src/assets/images/market_electric_guitar_1795215589789.jpg",
+};
+
+const DEFAULT_META_BY_ID: Record<string, { material: string; itemType: string }> = {
+  "item-telescope": { material: "Aluminum & Glass Optics", itemType: "Optics & Lab Gear" },
+  "item-tool-chest": { material: "Steel & Metal", itemType: "Hand & Shop Tools" },
+  "item-violin": { material: "Wood", itemType: "Musical Instruments" },
+  "item-trail-bike": { material: "Aluminum", itemType: "Bicycles & Outdoor" },
+  "item-microscope": { material: "Glass & Optics", itemType: "Optics & Lab Gear" },
+  "item-workbench": { material: "Wood & Steel", itemType: "Workbenches & Furniture" },
+  "item-3d-printer": { material: "Electronics & Polymer", itemType: "3D & Tech Equipment" },
+  "item-electric-guitar": { material: "Wood & Electronics", itemType: "Musical Instruments" },
+};
+
+function getFallbackPhotoForCategory(category: string): string {
+  switch (category) {
+    case "Tools & Workshop":
+    case "Building & Materials":
+    case "Auto & Garage":
+      return "/src/assets/images/market_tool_chest_1795215571467.jpg";
+    case "Science & Education":
+    case "Electronics & Tech":
+      return "/src/assets/images/market_3d_printer_1795215590079.jpg";
+    case "Music & Arts":
+      return "/src/assets/images/market_electric_guitar_1795215589789.jpg";
+    case "Bikes & Sports":
+    case "Kids & Family":
+      return "/src/assets/images/market_mountain_bike_1795215572605.jpg";
+    case "Home & Furniture":
+      return "/src/assets/images/market_workbench_1795215590068.jpg";
+    default:
+      return "/src/assets/images/online_discovery_marketplace_1795199437252.jpg";
+  }
+}
+
+function enrichMarketplaceItem(raw: Partial<GarageItem> & { id: string; title: string; category: string; price: number }): GarageItem {
+  const idMeta = DEFAULT_META_BY_ID[raw.id];
+  const imageUrl =
+    (raw.imageUrl && raw.imageUrl.trim()) ||
+    DEFAULT_PHOTO_BY_ID[raw.id] ||
+    getFallbackPhotoForCategory(raw.category);
+  return {
+    id: raw.id,
+    title: raw.title,
+    category: raw.category || "Tools & Workshop",
+    material: raw.material || idMeta?.material || "Mixed Materials",
+    itemType: raw.itemType || idMeta?.itemType || "Home & Garage Goods",
+    imageUrl,
+    price: Number(raw.price || 0),
+    location: raw.location || "Local Community",
+    sellerFamily: raw.sellerFamily || "Verified Family Listing",
+    sellerEmail: raw.sellerEmail,
+    description:
+      raw.description ||
+      "Item listed from a neighborhood garage—ready to build cooperative property equity.",
+    condition: raw.condition || "Very Good",
+    badge: raw.badge,
+    iconType: raw.iconType || "tools",
+    deliveryMethod: raw.deliveryMethod || "local_pickup",
+    shippingFeeUsd: Number(raw.shippingFeeUsd || 0),
+  };
 }
 
 const INITIAL_TRADE_ITEMS: GarageItem[] = [
@@ -55,10 +140,13 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
     id: "item-telescope",
     title: "Celestron 70mm Student Refractor Telescope",
     category: "Science & Education",
+    material: "Aluminum & Glass Optics",
+    itemType: "Optics & Lab Gear",
+    imageUrl: "/src/assets/images/market_telescope_1795215571680.jpg",
     price: 120,
     location: "Oakland Hills, CA",
     sellerFamily: "The Miller Family",
-    description: "Used for two middle-school astronomy terms. Includes tripod, 20mm eyepiece, and solar filter. Clean optics.",
+    description: "Used for two middle-school astronomy terms. Includes full aluminum tripod, 20mm eyepiece, finder scope, and solar filter. Clean glass optics, ready for backyard stargazing or school science fairs.",
     condition: "Excellent",
     badge: "Student Science",
     iconType: "telescope",
@@ -67,10 +155,13 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
     id: "item-tool-chest",
     title: "Craftsman 120-Piece Socket & Mechanics Chest",
     category: "Tools & Workshop",
+    material: "Steel & Metal",
+    itemType: "Hand & Shop Tools",
+    imageUrl: "/src/assets/images/market_tool_chest_1795215571467.jpg",
     price: 100,
     location: "Columbus, OH",
     sellerFamily: "Dave & Sarah K.",
-    description: "Classic garage tool set. Metric and standard sockets, ratchets, and heavy-duty case. The exact $100 Article 12.1 model.",
+    description: "Classic red steel mechanics chest with chrome vanadium metric and SAE sockets, two quick-release ratchets, extensions, and hex keys. Complete 120-piece garage set with zero missing sockets.",
     condition: "Like New",
     badge: "Article 12.1 Anchor",
     iconType: "tools",
@@ -79,10 +170,13 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
     id: "item-violin",
     title: "1/2 Size Student Violin with Horsehair Bow & Hard Case",
     category: "Music & Arts",
+    material: "Wood",
+    itemType: "Musical Instruments",
+    imageUrl: "/src/assets/images/market_violin_1795215572717.jpg",
     price: 160,
     location: "Philadelphia, PA",
     sellerFamily: "The Chen Family",
-    description: "Handcrafted spruce top, warm tone. Outgrown by our 6th grader who moved to a full-size violin.",
+    description: "Handcrafted solid spruce top and maple back with warm tone, ebony fingerboard, horsehair bow, and plush velvet-lined hard carrying case. Outgrown by our 6th grader who moved up to a full-size violin.",
     condition: "Very Good",
     badge: "Youth Arts",
     iconType: "music",
@@ -91,46 +185,58 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
     id: "item-trail-bike",
     title: "Trek 24-Inch Aluminum Youth Mountain Bike",
     category: "Bikes & Sports",
+    material: "Aluminum",
+    itemType: "Bicycles & Outdoor",
+    imageUrl: "/src/assets/images/market_mountain_bike_1795215572605.jpg",
     price: 80,
     location: "Austin, TX",
     sellerFamily: "The Jackson Family",
-    description: "Brand-new tires, 7-speed Shimano shifting, tuned brakes. Perfect for riding to middle school.",
+    description: "Lightweight blue-and-silver aluminum frame, brand-new trail tires, front suspension fork, 7-speed Shimano shifting, and freshly tuned brakes. Great for riding to school or weekend neighborhood trails.",
     condition: "Good",
     badge: "Neighborhood Active",
     iconType: "bike",
   },
   {
     id: "item-microscope",
-    title: "AmScope 1200x Compound Monocular Microscope",
+    title: "AmScope 1200x Compound Student Microscope + Slide Box",
     category: "Science & Education",
+    material: "Glass & Optics",
+    itemType: "Optics & Lab Gear",
+    imageUrl: "/src/assets/images/market_microscope_1795215589823.jpg",
     price: 90,
     location: "Denver, CO",
     sellerFamily: "Marcus T. (Science Teacher)",
-    description: "LED illumination, precision glass optics, includes 25 prepared specimen slides for biology projects.",
+    description: "Sturdy metal-body compound microscope with LED illumination, precision glass objective lenses, fine focus knobs, and a wooden box of 25 prepared biology specimen slides.",
     condition: "Like New",
     badge: "Public Schools Ready",
     iconType: "microscope",
   },
   {
     id: "item-workbench",
-    title: "Solid Maple Garage Workbench with Woodworking Vise",
+    title: "Solid Maple Garage Workbench with Dual Woodworking Vises",
     category: "Tools & Workshop",
+    material: "Wood & Steel",
+    itemType: "Workbenches & Furniture",
+    imageUrl: "/src/assets/images/market_workbench_1795215590068.jpg",
     price: 240,
     location: "Pittsburgh, PA",
     sellerFamily: "The Alvarez Family",
-    description: "Heavy-duty 5-foot bench built from solid hardwood with steel legs and integrated 7-inch rapid-action vise.",
+    description: "Heavy-duty 5-foot butcher-block solid maple hardwood top with powder-coated steel legs, lower mesh storage shelf, and integrated cast-iron 7-inch woodworking vises.",
     condition: "Very Good",
     badge: "Garage Heavy",
     iconType: "workbench",
   },
   {
     id: "item-3d-printer",
-    title: "Creality Ender-3 V2 3D Printer (Student-Tuned)",
-    category: "Science & Education",
+    title: "Creality Ender-3 V2 3D Printer + 2 Filament Spools",
+    category: "Electronics & Tech",
+    material: "Electronics & Polymer",
+    itemType: "3D & Tech Equipment",
+    imageUrl: "/src/assets/images/market_3d_printer_1795215590079.jpg",
     price: 180,
     location: "Atlanta, GA",
     sellerFamily: "The Patel Family",
-    description: "Glass bed upgrade, silent motherboard, calibrated for youth robotics prototyping. Includes 2 spools of PLA.",
+    description: "Rigid black aluminum extrusion frame with heated glass build plate, silent stepper motherboard, leveled and calibrated for youth robotics & STEM prototyping. Includes 2 spools of PLA filament.",
     condition: "Excellent",
     badge: "Invention Lab",
     iconType: "printer",
@@ -139,10 +245,13 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
     id: "item-electric-guitar",
     title: "Fender Squier Mini Electric Guitar & Practice Amp",
     category: "Music & Arts",
+    material: "Wood & Electronics",
+    itemType: "Musical Instruments",
+    imageUrl: "/src/assets/images/market_electric_guitar_1795215589789.jpg",
     price: 140,
     location: "Nashville, TN",
     sellerFamily: "The Ramirez Family",
-    description: "3/4 size body, cable, strap, gig bag, and 10-watt amplifier. Ready for the next garage rocker.",
+    description: "Sunburst 3/4-size solid-body electric guitar with wooden display stand, braided instrument cable, and compact 10-watt Fender practice amplifier. Clean tone and ready for a young musician.",
     condition: "Excellent",
     badge: "Starter Gear",
     iconType: "guitar",
@@ -150,11 +259,40 @@ const INITIAL_TRADE_ITEMS: GarageItem[] = [
 ];
 
 const CATEGORIES = [
-  "All Items",
-  "Science & Education",
+  "All Sections",
   "Tools & Workshop",
+  "Science & Education",
   "Music & Arts",
   "Bikes & Sports",
+  "Home & Furniture",
+  "Electronics & Tech",
+  "Building & Materials",
+  "Kids & Family",
+  "Auto & Garage",
+  "Clothing & Gear",
+  "Other Items",
+] as const;
+
+const MATERIAL_FILTERS = [
+  "All Materials",
+  "Wood",
+  "Steel & Metal",
+  "Aluminum",
+  "Glass & Optics",
+  "Electronics & Polymer",
+  "Fabric & Leather",
+  "Mixed Materials",
+] as const;
+
+const ITEM_TYPE_FILTERS = [
+  "All Item Types",
+  "Hand & Shop Tools",
+  "Bicycles & Outdoor",
+  "Musical Instruments",
+  "Optics & Lab Gear",
+  "3D & Tech Equipment",
+  "Workbenches & Furniture",
+  "Home & Garage Goods",
 ] as const;
 
 export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
@@ -162,9 +300,17 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
   onOpenOwnerSignup,
 }) => {
   const [items, setItems] = useState<GarageItem[]>(INITIAL_TRADE_ITEMS);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All Items");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All Sections");
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("All Materials");
+  const [selectedItemType, setSelectedItemType] = useState<string>("All Item Types");
+  const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc">("newest");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [heroImgFailed, setHeroImgFailed] = useState(false);
+
+  // "Explore More" opens the full explanation window RIGHT ON TOP of the Marketplace
+  const [showExploreModal, setShowExploreModal] = useState<boolean>(false);
+  // Clicking any Marketplace item card opens its full Amazon-style description window on top
+  const [selectedDetailItem, setSelectedDetailItem] = useState<GarageItem | null>(null);
 
   // Active receipt simulator state
   const [activeItemForReceipt, setActiveItemForReceipt] = useState<GarageItem | null>(null);
@@ -189,13 +335,81 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
     approveUrl?: string;
   } | null>(null);
 
-  // "List Item" Modal State
+  // "Add Your Item" Modal State
   const [isListingModalOpen, setIsListingModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState<GarageItem["category"]>("Tools & Workshop");
+  const [newCategory, setNewCategory] = useState<string>("Tools & Workshop");
+  const [newMaterial, setNewMaterial] = useState<string>("Steel & Metal");
+  const [newItemType, setNewItemType] = useState<string>("Hand & Shop Tools");
+  const [newCondition, setNewCondition] = useState<string>("Very Good");
   const [newPrice, setNewPrice] = useState<number>(75);
-  const [newLocation, setNewLocation] = useState("Your Neighborhood");
+  const [newLocation, setNewLocation] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState<string>("");
+  const [newDeliveryMethod, setNewDeliveryMethod] = useState<
+    "local_pickup" | "free_shipping" | "flat_rate_shipping"
+  >("local_pickup");
+  const [newShippingFeeUsd, setNewShippingFeeUsd] = useState<number>(12);
+  const [acceptedSafetyPolicy, setAcceptedSafetyPolicy] = useState<boolean>(false);
+  const [listingValidationError, setListingValidationError] = useState<string | null>(null);
+
+  // Delivery Tracking (5-business-day carrier tracking) & Two-Way Blind Simultaneous 1–5 Star Ratings
+  const [trackingDraft, setTrackingDraft] = useState<Record<string, string>>({});
+  const [savedTrackingMap, setSavedTrackingMap] = useState<Record<string, string>>({});
+  const [ratingStateMap, setRatingStateMap] = useState<
+    Record<
+      string,
+      {
+        buyerStars: number;
+        sellerStars: number;
+        buyerSubmitted: boolean;
+        sellerSubmitted: boolean;
+        disputeFiled: boolean;
+      }
+    >
+  >({});
+
+  const getItemRatingState = (itemId: string) =>
+    ratingStateMap[itemId] ?? {
+      buyerStars: 5,
+      sellerStars: 5,
+      buyerSubmitted: false,
+      sellerSubmitted: false,
+      disputeFiled: false,
+    };
+
+  const formatDeliveryLabel = (item: GarageItem) => {
+    if (item.deliveryMethod === "free_shipping") return "Free Shipping (5-Day Tracking)";
+    if (item.deliveryMethod === "flat_rate_shipping") {
+      return `Flat-Rate Shipping (+${formatUsd(item.shippingFeeUsd || 12)} to Seller)`;
+    }
+    return "Local Pickup Only (4-Digit Code)";
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 720;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          setNewImageUrl(canvas.toDataURL("image/jpeg", 0.78));
+        }
+      };
+      if (typeof reader.result === "string") {
+        img.src = reader.result;
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const refreshPersistedMarketplace = useCallback(async () => {
     try {
@@ -203,7 +417,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length > 0) {
-          setItems(data.items);
+          setItems(data.items.map((rawItem: GarageItem) => enrichMarketplaceItem(rawItem)));
         }
         if (data.summary) {
           setSimulatedTradesCount(Number(data.summary.totalTrades || 0));
@@ -215,8 +429,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
       // Retain seeded state when offline
     }
 
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("tdex_owner_token") : null;
+    const token = getOwnerToken();
     if (token) {
       try {
         const walletRes = await fetch("/api/wallets/me", {
@@ -435,17 +648,38 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
       maximumFractionDigits: 2,
     });
 
-  // Filtered items
-  const filteredItems = items.filter((item) => {
-    const matchesCat =
-      selectedCategory === "All Items" || item.category === selectedCategory;
-    const matchesSearch =
-      searchQuery.trim() === "" ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sellerFamily.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  // Filtered & sorted items across sections, materials, item types, and free-text search
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const list = items.filter((item) => {
+      const matchesSection =
+        selectedCategory === "All Sections" || item.category === selectedCategory;
+      const matchesMaterial =
+        selectedMaterial === "All Materials" ||
+        item.material.toLowerCase().includes(selectedMaterial.toLowerCase().split(" ")[0]);
+      const matchesType =
+        selectedItemType === "All Item Types" || item.itemType === selectedItemType;
+      const matchesSearch =
+        q === "" ||
+        item.title.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.category.toLowerCase().includes(q) ||
+        item.material.toLowerCase().includes(q) ||
+        item.itemType.toLowerCase().includes(q) ||
+        item.condition.toLowerCase().includes(q) ||
+        item.location.toLowerCase().includes(q) ||
+        item.sellerFamily.toLowerCase().includes(q);
+      return matchesSection && matchesMaterial && matchesType && matchesSearch;
+    });
+
+    if (sortBy === "price-asc") {
+      return [...list].sort((a, b) => a.price - b.price);
+    }
+    if (sortBy === "price-desc") {
+      return [...list].sort((a, b) => b.price - a.price);
+    }
+    return list;
+  }, [items, selectedCategory, selectedMaterial, selectedItemType, searchQuery, sortBy]);
 
   const handleSimulateCheckout = (item: GarageItem) => {
     setActiveItemForReceipt(item);
@@ -456,8 +690,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
   const handlePayPalSandboxCheckout = async () => {
     if (!activeItemForReceipt || isTradeBusy) return;
     setIsTradeBusy(true);
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("tdex_owner_token") : null;
+    const token = getOwnerToken();
 
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -510,8 +743,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
   const handleConfirmSimulatedTrade = async () => {
     if (!activeItemForReceipt || isTradeBusy) return;
     setIsTradeBusy(true);
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("tdex_owner_token") : null;
+    const token = getOwnerToken();
 
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -566,11 +798,17 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
 
   const handleCreateNewListing = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptedSafetyPolicy) {
+      setListingValidationError(
+        "You must confirm this item is legal, safe, not recalled, and contains zero prohibited items before publishing."
+      );
+      return;
+    }
     if (!newTitle.trim() || newPrice <= 0 || isListingBusy) return;
+    setListingValidationError(null);
     setIsListingBusy(true);
 
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("tdex_owner_token") : null;
+    const token = getOwnerToken();
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -581,21 +819,33 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
         body: JSON.stringify({
           title: newTitle.trim(),
           category: newCategory,
+          material: newMaterial,
+          itemType: newItemType,
+          condition: newCondition,
+          imageUrl: newImageUrl || getFallbackPhotoForCategory(newCategory),
           price: newPrice,
           location: newLocation.trim() || "Local Community",
           description: newDescription.trim(),
+          deliveryMethod: newDeliveryMethod,
+          shippingFeeUsd: newDeliveryMethod === "flat_rate_shipping" ? newShippingFeeUsd : 0,
+          safetyAttestationAccepted: true,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        const persistedItem = data.item as GarageItem;
+        const persistedItem = enrichMarketplaceItem(data.item as GarageItem);
         setItems((prev) => [persistedItem, ...prev.filter((it) => it.id !== persistedItem.id)]);
         setIsListingModalOpen(false);
         setNewTitle("");
         setNewDescription("");
+        setNewLocation("");
+        setNewImageUrl("");
         setNewPrice(75);
-        setActiveItemForReceipt(persistedItem);
+        setNewDeliveryMethod("local_pickup");
+        setNewShippingFeeUsd(12);
+        setAcceptedSafetyPolicy(false);
+        setSelectedDetailItem(persistedItem);
         return;
       }
     } catch {
@@ -608,13 +858,18 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
       id: `item-${Date.now()}`,
       title: newTitle.trim(),
       category: newCategory,
+      material: newMaterial,
+      itemType: newItemType,
+      imageUrl: newImageUrl || getFallbackPhotoForCategory(newCategory),
       price: newPrice,
+      deliveryMethod: newDeliveryMethod,
+      shippingFeeUsd: newDeliveryMethod === "flat_rate_shipping" ? newShippingFeeUsd : 0,
       location: newLocation.trim() || "Local Community",
       sellerFamily: "You (Your Family Listing)",
       description:
         newDescription.trim() ||
         "Item listed from a neighborhood garage—ready to build cooperative property equity.",
-      condition: "Very Good",
+      condition: newCondition,
       badge: "New Listing",
       iconType: "tools",
     };
@@ -623,89 +878,481 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
     setIsListingModalOpen(false);
     setNewTitle("");
     setNewDescription("");
+    setNewLocation("");
+    setNewImageUrl("");
+    setNewDeliveryMethod("local_pickup");
+    setNewShippingFeeUsd(12);
+    setAcceptedSafetyPolicy(false);
     setNewPrice(75);
-    setActiveItemForReceipt(newItem);
+    setSelectedDetailItem(newItem);
   };
 
   return (
     <div className="bg-[#F8FAFC] text-slate-900 rounded-2xl border border-slate-200/80">
-      <div className="max-w-[1360px] mx-auto px-5 sm:px-8 py-8 space-y-10">
-        {/* SECTION 1: STOREFRONT HERO — FROM THE GARAGE TO THE FUTURE */}
-        <section className="bg-[#0B1F3A] rounded-2xl overflow-hidden border border-slate-800 grid grid-cols-1 lg:grid-cols-12 items-stretch shadow-md">
-          <div className="lg:col-span-7 relative min-h-[260px] bg-[#102A4C]">
-            {!heroImgFailed ? (
-              <img
-                src="/assets/aistudio/Sunny_Suburban_Garage_Sale_Scene_40932d66.webp"
-                alt="Neighbors and parents trading a bicycle, guitar, and household goods in a sunny driveway"
-                referrerPolicy="no-referrer"
-                onError={() => setHeroImgFailed(true)}
-                className="w-full h-full object-cover object-center"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center p-10 text-white">
-                <Home className="w-12 h-12 text-[#F3C969]" />
+      <div className="max-w-[1360px] mx-auto px-5 sm:px-8 py-6 space-y-6">
+        {/* ================================================================ */}
+        {/* DIRECT LIVE MARKETPLACE — AMAZON-MEETS-TDEX WINDOWS              */}
+        {/* ================================================================ */}
+        <section className="space-y-5">
+          {/* Top Marketplace Command Header: Prominent Add Your Item + Explore More */}
+          <div className="bg-[#081d38] text-white rounded-2xl border-2 border-[#dfa62a] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#fcd34d]">
+                <ShoppingBag className="w-4 h-4 shrink-0" />
+                <span>Discovery Marketplace · Online Garage Sale · $0 Listing Fee</span>
               </div>
-            )}
-            <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-xs border border-white/20 text-xs text-amber-200 flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Engine 2: 50% Cash · 25% Property Equity · 25% Buyer Cashback</span>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                Shop &amp; Sell Items — 50 / 25 / 25 Program
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-200">
+                Click any item window to view full details, or post your own item right now.
+              </p>
             </div>
-          </div>
 
-          <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-center space-y-4 text-white">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-400/20 text-[#F3C969] border border-amber-400/30">
-                Article 12.1 Engine
-              </span>
-              <span className="text-xs text-slate-300">Peer-to-Peer Exchange</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight text-balance">
-              Free/Marketplace
-            </h1>
-            <p className="text-base font-semibold text-[#F3C969]">
-              From the Garage to the Future.
-            </p>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              Sell what you no longer need. Turn everyday bikes, tools, and guitars into cash today
-              while building permanent Shared Family Ownership in the Parents Alliance (Dexpa).
-            </p>
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsListingModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-950 bg-[#F3C969] hover:bg-[#e7bc55] rounded-xl transition-colors text-center max-w-full cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-extrabold text-[#081d38] bg-[#dfa62a] hover:bg-[#facc15] border-2 border-amber-200 rounded-xl shadow-md transition-all cursor-pointer"
               >
-                <PackagePlus className="w-4 h-4 shrink-0" />
-                List an Item from Your Garage
+                <PackagePlus className="w-5 h-5 shrink-0" />
+                <span>+ Post an Item</span>
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (onOpenConstitution) {
-                    onOpenConstitution();
-                  } else {
-                    document.getElementById("article-11-rules-ledger")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white border border-white/25 hover:bg-white/10 rounded-xl transition-colors text-center max-w-full cursor-pointer"
+                onClick={() => setShowExploreModal(true)}
+                className="inline-flex items-center gap-2 px-5 py-3.5 text-sm font-bold text-white bg-white/12 hover:bg-white/20 border-2 border-white/30 rounded-xl transition-colors cursor-pointer"
               >
-                Read Article 12 Rules
+                <BookOpen className="w-4 h-4 text-[#fcd34d] shrink-0" />
+                <span>Explore More</span>
               </button>
             </div>
           </div>
+
+          {/* Search & Multi-Filter Bar (Sections, Materials, Item Types, Sort) */}
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4 shadow-xs space-y-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              {/* Primary Search Input */}
+              <div className="sm:col-span-5 relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search items, materials (wood, steel, aluminum), sections, or cities..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2.5 text-sm text-slate-900 bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#081d38] focus:bg-white transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Material Filter */}
+              <div className="sm:col-span-2 relative">
+                <select
+                  aria-label="Filter by material"
+                  value={selectedMaterial}
+                  onChange={(e) => setSelectedMaterial(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs font-semibold text-slate-800 bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#081d38] cursor-pointer"
+                >
+                  {MATERIAL_FILTERS.map((mat) => (
+                    <option key={mat} value={mat}>
+                      {mat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Item Type Filter */}
+              <div className="sm:col-span-3 relative">
+                <select
+                  aria-label="Filter by item type"
+                  value={selectedItemType}
+                  onChange={(e) => setSelectedItemType(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs font-semibold text-slate-800 bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#081d38] cursor-pointer"
+                >
+                  {ITEM_TYPE_FILTERS.map((typeOpt) => (
+                    <option key={typeOpt} value={typeOpt}>
+                      {typeOpt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Order */}
+              <div className="sm:col-span-2 relative">
+                <select
+                  aria-label="Sort items"
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(e.target.value as "newest" | "price-asc" | "price-desc")
+                  }
+                  className="w-full px-3 py-2.5 text-xs font-semibold text-slate-800 bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#081d38] cursor-pointer"
+                >
+                  <option value="newest">Sort: Newest</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Section Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+              {CATEGORIES.map((cat) => {
+                const isActive = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                      isActive
+                        ? "bg-[#081d38] text-[#fcd34d] shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Live Count + Ticker + Active Filter Reset */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="font-bold text-[#081d38]">
+                  Showing {filteredItems.length} of {items.length} Listings
+                </span>
+                {(selectedCategory !== "All Sections" ||
+                  selectedMaterial !== "All Materials" ||
+                  selectedItemType !== "All Item Types" ||
+                  searchQuery.trim() !== "") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory("All Sections");
+                      setSelectedMaterial("All Materials");
+                      setSelectedItemType("All Item Types");
+                      setSearchQuery("");
+                    }}
+                    className="text-xs font-bold text-[#0f4c81] hover:text-[#081d38] underline underline-offset-2 cursor-pointer"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-950">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Trades: {simulatedTradesCount}</span>
+                  <span className="text-slate-400">|</span>
+                  <span>Cash: {formatUsd(accumulatedSellerCash)}</span>
+                  <span className="text-slate-400">|</span>
+                  <span>25% Equity: {formatUsd(accumulatedPropertyCredit)}</span>
+                </div>
+                {signedInWallet && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-950">
+                    <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>
+                      Wallet: {formatUsd(signedInWallet.accumulationBalanceUsd)} Equity ·{" "}
+                      {formatUsd(signedInWallet.sellerCashBalanceUsd)} Cash
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Amazon-Meets-TDEX Item Windows Grid (Locked 4 Columns on Desktop) */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+            {filteredItems.map((item) => {
+              const split = computeArticle11SplitCents(Math.round(item.price * 100));
+              return (
+                <article
+                  key={item.id}
+                  onClick={() => setSelectedDetailItem(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedDetailItem(item);
+                    }
+                  }}
+                  className="bg-white rounded-2xl border-2 border-slate-200 hover:border-[#dfa62a] hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group cursor-pointer text-left"
+                >
+                  {/* Crisp Product Photo Window */}
+                  <div>
+                    <div className="relative aspect-[4/3] w-full bg-slate-100 overflow-hidden border-b border-slate-200">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "/src/assets/images/online_discovery_marketplace_1795199437252.jpg";
+                        }}
+                        className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-300"
+                      />
+                      <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#081d38]/90 text-[#fcd34d] shadow-xs">
+                        {item.category}
+                      </span>
+                      <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/95 text-slate-800 border border-slate-200 shadow-xs">
+                        {item.condition}
+                      </span>
+                    </div>
+
+                    {/* Concise Title + Short Preview Description */}
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-[#081d38] leading-snug line-clamp-2">
+                          {item.title}
+                        </h3>
+                      </div>
+
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+
+                      {/* Material & Type Metadata */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px] font-semibold text-slate-600">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                          {item.material}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                          {item.itemType}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price + Compact 50/25/25 Strip + Click Prompt */}
+                  <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-2.5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-2xl font-extrabold text-[#081d38] tabular-nums">
+                        {formatUsd(item.price)}
+                      </span>
+                      <span className="text-[11px] text-slate-500 inline-flex items-center gap-1 truncate max-w-[140px]">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{item.location}</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1 text-center text-[10px] bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                      <div>
+                        <div className="text-slate-500">50% Funds</div>
+                        <div className="font-bold text-emerald-700">{formatUsd(split.sellerCashUsd)}</div>
+                      </div>
+                      <div className="border-x border-slate-200">
+                        <div className="text-slate-500">25% Seller</div>
+                        <div className="font-bold text-amber-800">{formatUsd(split.sellerEquityUsd)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">25% Buyer</div>
+                        <div className="font-bold text-sky-800">{formatUsd(split.buyerEquityUsd)}</div>
+                      </div>
+                    </div>
+
+                    <div className="text-[10.5px] font-semibold text-slate-600 inline-flex items-center gap-1 truncate">
+                      <Truck className="w-3 h-3 text-[#081d38] shrink-0" />
+                      <span className="truncate">{formatDeliveryLabel(item)}</span>
+                    </div>
+
+                    <div className="w-full py-2 px-3 rounded-xl bg-[#081d38] group-hover:bg-[#0f294d] text-[#fcd34d] text-xs font-bold transition-colors flex items-center justify-center gap-1.5">
+                      <span>View Details &amp; Buy</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Marketplace Peer-to-Peer Disclaimer Bar */}
+          <div className="p-4 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <strong className="text-[#081d38]">Marketplace Disclaimer:</strong> The Discovery
+              Exchange (TDEX) provides the peer-to-peer matching board only and does not inspect,
+              own, take possession of, or guarantee any listed items. Individual sellers are solely
+              responsible for item accuracy, safety, and legality.
+            </div>
+            <span className="font-mono text-[11px] font-bold text-[#9A6B0A] shrink-0">
+              0% TDEX Fee &bull; Zero Custody
+            </span>
+          </div>
+
+          {filteredItems.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-2xl border-2 border-slate-200 p-8 space-y-3">
+              <Search className="w-8 h-8 text-slate-400 mx-auto" />
+              <h3 className="text-base font-bold text-slate-800">
+                No items matched your search or filters
+              </h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Try clearing a filter, searching another material or section, or be the first to add
+                an item in this category!
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory("All Sections");
+                    setSelectedMaterial("All Materials");
+                    setSelectedItemType("All Item Types");
+                    setSearchQuery("");
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-[#081d38] bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsListingModalOpen(true)}
+                  className="px-4 py-2 text-xs font-extrabold text-[#081d38] bg-[#dfa62a] hover:bg-[#eab308] rounded-lg transition-colors cursor-pointer"
+                >
+                  + Add Your Item
+                </button>
+              </div>
+            </div>
+          )}
         </section>
+      </div>
+
+      {/* ================================================================== */}
+      {/* OVERLAY MODAL 0: "EXPLORE MORE" EXPLANATION WINDOW ON TOP          */}
+      {/* ================================================================== */}
+      {showExploreModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Discovery Marketplace Complete Explanation Guide"
+          className="fixed inset-0 z-[70] flex items-start justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowExploreModal(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-[1260px] my-2 bg-[#F8FAFC] rounded-2xl border-2 border-[#dfa62a] shadow-2xl overflow-hidden">
+            {/* Sticky Top Bar inside Explore More Overlay */}
+            <div className="sticky top-0 z-20 bg-[#081d38] text-white border-b-2 border-[#dfa62a] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#fcd34d]">
+                  <BookOpen className="w-4 h-4" />
+                  <span>Discovery Marketplace — Complete Guide &amp; Article 12 Engine</span>
+                </div>
+                <p className="text-xs text-slate-200">
+                  How the 50/25/25 Online Garage Sale, DEXPA Property Wallets, and Discovery Brick Coin work together.
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowExploreModal(false)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] text-xs sm:text-sm font-extrabold shadow-sm transition-colors cursor-pointer"
+                >
+                  <span>Close &amp; Back to Marketplace</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExploreModal(false)}
+                  aria-label="Close explanation window"
+                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/25 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-8 space-y-8">
+            {/* SECTION 1: STOREFRONT HERO — FROM THE GARAGE TO THE FUTURE */}
+            <section className="bg-[#0B1F3A] rounded-2xl overflow-hidden border border-slate-800 grid grid-cols-1 lg:grid-cols-12 items-stretch shadow-md">
+              <div className="lg:col-span-7 relative min-h-[260px] bg-[#102A4C]">
+                {!heroImgFailed ? (
+                  <img
+                    src="/assets/aistudio/Sunny_Suburban_Garage_Sale_Scene_40932d66.webp"
+                    alt="Neighbors and parents trading a bicycle, guitar, and household goods in a sunny driveway"
+                    referrerPolicy="no-referrer"
+                    onError={() => setHeroImgFailed(true)}
+                    className="w-full h-full object-cover object-center"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center p-10 text-white">
+                    <Home className="w-12 h-12 text-[#F3C969]" />
+                  </div>
+                )}
+                <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-xs border border-white/20 text-xs text-amber-200 flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Engine 2: 50% Cash · 25% Property Equity · 25% Buyer Cashback</span>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-center space-y-4 text-white">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-400/20 text-[#F3C969] border border-amber-400/30">
+                    Article 12.1 Engine
+                  </span>
+                  <span className="text-xs text-slate-300">Peer-to-Peer Exchange</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight text-balance">
+                  Discovery Marketplace · Online Garage Sale
+                </h2>
+                <p className="text-base font-semibold text-[#F3C969]">
+                  From the Garage to the Future.
+                </p>
+                <p className="text-sm text-slate-200 leading-relaxed">
+                  Sell what you no longer need. Turn everyday bikes, tools, and guitars into cash today
+                  while building permanent Shared Family Ownership in the Parents Alliance (DEXPA).
+                </p>
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowExploreModal(false);
+                      setIsListingModalOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-extrabold text-slate-950 bg-[#F3C969] hover:bg-[#e7bc55] rounded-xl transition-colors text-center max-w-full cursor-pointer shadow-sm"
+                  >
+                    <PackagePlus className="w-4 h-4 shrink-0" />
+                    <span>+ Add Your Item Now</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenConstitution) {
+                        setShowExploreModal(false);
+                        onOpenConstitution();
+                      } else {
+                        document.getElementById("article-11-rules-ledger")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white border border-white/25 hover:bg-white/10 rounded-xl transition-colors text-center max-w-full cursor-pointer"
+                  >
+                    Read Article 12 Rules
+                  </button>
+                </div>
+              </div>
+            </section>
 
         {/* NON-CUSTODIAL OPEN PROJECT NOTICE */}
         <div
           role="region"
           aria-label="Open Project Non-Custodial Notice"
-          className="tdex-prelaunch-banner w-full bg-[#061529] text-white border-2 border-[#dfa62a] rounded-xl px-4 sm:px-6 py-3 text-center text-xs sm:text-[13px] leading-snug shadow-xs"
+          className="tdex-prelaunch-banner w-full bg-white text-[#9A6B0A] border-2 border-[#dfa62a] rounded-xl px-4 sm:px-6 py-3 text-center text-xs sm:text-[13px] leading-snug shadow-xs"
         >
-          <div className="font-bold text-[#fcd34d] uppercase tracking-wide mb-0.5">
-            OPEN PROJECT UNDER ACTIVE REVIEW &amp; BUILD — ZERO MONEY HANDLING BY TDEX
+          <div className="font-bold text-[#B47D12] uppercase tracking-wide mb-0.5">
+            TDEX is Building Something New.
           </div>
-          <div>
-            The Discovery Exchange (TDEX) <strong>NEVER</strong> holds, pools, collects, or touches any money. Families can begin setting up and building their own segregated property-accumulation balances inside their own licensed payment processor wallets (such as PayPal or an authorized financial partner) right away. When TDEX matches a debt-free property to buyers, TDEX opens a licensed third-party escrow directly on the seller’s side and gives buyers a set window to fund that seller-side escrow straight from their own regulated wallets.
+          <div className="font-semibold text-[#9A6B0A]">
+            Your money always stays in your accounts. The Discovery Exchange (TDEX) never holds or collects your funds. Instead, you save up for a home in your own PayPal or personal account. When TDEX finds the property that’s a match, you send your funds straight to a licensed escrow company to close the deal safely.
           </div>
         </div>
 
@@ -1123,200 +1770,6 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
           </div>
         </section>
 
-        {/* SECTION 2: LIVE GARAGE TRADE BOARD & ITEM DIRECTORY */}
-        <section className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#0F2749]">
-                <Tag className="w-3.5 h-3.5 text-amber-600" />
-                <span>Active Neighborhood Exchange Board</span>
-              </div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mt-1">
-                Explore Items Available for Trade
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-                Every trade executes the locked 50 / 25 / 25 split—putting money in the seller’s hand and equity in both families' property wallets.
-              </p>
-            </div>
-
-            {/* Quick Action Button & Live Persisted Ticker */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-950">
-                <ShieldCheck className="w-4 h-4 text-amber-600" />
-                <span>Trades: {simulatedTradesCount}</span>
-                <span className="text-slate-400">|</span>
-                <span>Cash: {formatUsd(accumulatedSellerCash)}</span>
-                <span className="text-slate-400">|</span>
-                <span>25% Equity: {formatUsd(accumulatedPropertyCredit)}</span>
-              </div>
-              {signedInWallet && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-950">
-                  <Wallet className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>
-                    Your Wallet: {formatUsd(signedInWallet.accumulationBalanceUsd)} Equity ·{" "}
-                    {formatUsd(signedInWallet.sellerCashBalanceUsd)} Cash
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsListingModalOpen(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[#0F2749] bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
-              >
-                <PackagePlus className="w-3.5 h-3.5 text-amber-600" />
-                + Add Listing
-              </button>
-            </div>
-          </div>
-
-          {/* Search Bar & Category Filter Pills */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs min-w-0">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search tools, instruments, student science gear, bikes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-900 bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0F2749] transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:overflow-x-auto pb-1 sm:pb-0 max-w-full min-w-0">
-              {CATEGORIES.map((cat) => {
-                const isActive = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                      isActive
-                        ? "bg-[#0F2749] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Items Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {filteredItems.map((item) => {
-              const split = computeArticle11SplitCents(Math.round(item.price * 100));
-              const sellerCash = split.sellerCashUsd;
-              const sellerWallet = split.sellerEquityUsd;
-              const buyerWallet = split.buyerEquityUsd;
-
-              return (
-                <article
-                  key={item.id}
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
-                >
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
-                        {item.category}
-                      </span>
-                      {item.badge && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-[#0F2749] transition-colors leading-snug line-clamp-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-xs text-slate-500">Listed Price:</span>
-                        <span className="text-xl font-bold text-slate-900 tabular-nums">
-                          {formatUsd(item.price)}
-                        </span>
-                      </div>
-
-                      {/* 50 / 25 / 25 Live Micro-Breakdown */}
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1 text-[11px]">
-                        <div className="flex items-center justify-between text-slate-700">
-                          <span>💵 Seller Cash (50%):</span>
-                          <span className="font-bold text-emerald-700">{formatUsd(sellerCash)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-slate-700">
-                          <span>🏡 Seller Equity (25%):</span>
-                          <span className="font-bold text-amber-800">{formatUsd(sellerWallet)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-slate-700">
-                          <span>🎁 Buyer Cashback (25%):</span>
-                          <span className="font-bold text-sky-800">{formatUsd(buyerWallet)}</span>
-                        </div>
-                      </div>
-
-                      <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                        <span>{item.sellerFamily}</span>
-                        <span>{item.location}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Primary Action Button */}
-                  <div className="p-3 bg-slate-50/80 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => handleSimulateCheckout(item)}
-                      className="w-full py-2 px-3 rounded-xl bg-[#0F2749] hover:bg-[#173663] text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <Receipt className="w-3.5 h-3.5 text-[#F3C969]" />
-                      <span>Simulate Trade &amp; Split</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
-              <Search className="w-8 h-8 text-slate-400 mx-auto" />
-              <h3 className="text-base font-bold text-slate-800">No items found matching your filter</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Try searching for bicycles, microscopes, guitars, or click "All Items" to view all active community listings.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategory("All Items");
-                  setSearchQuery("");
-                }}
-                className="px-4 py-2 text-xs font-semibold text-[#0F2749] bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-              >
-                Reset Filters
-              </button>
-            </div>
-          )}
-        </section>
-
         {/* SECTION 3: INTERACTIVE 50 / 25 / 25 CUSTOM CHECKOUT CALCULATOR */}
         <section className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -1388,7 +1841,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
 
             <div className="p-5 rounded-xl bg-[#0B1F3A] text-white border border-slate-800 space-y-1.5 shadow-xs">
               <div className="flex items-center justify-between text-xs font-semibold text-[#F3C969]">
-                <span>25% · Seller Dexpa Wallet</span>
+                <span>25% · Seller DEXPA Wallet</span>
                 <span className="tabular-nums">Property Equity</span>
               </div>
               <div className="text-3xl font-bold tracking-tight text-white tabular-nums">
@@ -1401,7 +1854,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
 
             <div className="p-5 rounded-xl bg-[#0B1F3A] text-white border border-slate-800 space-y-1.5 shadow-xs">
               <div className="flex items-center justify-between text-xs font-semibold text-[#F3C969]">
-                <span>25% · Buyer Dexpa Wallet</span>
+                <span>25% · Buyer DEXPA Wallet</span>
                 <span className="tabular-nums">Buyer Cashback</span>
               </div>
               <div className="text-3xl font-bold tracking-tight text-white tabular-nums">
@@ -1441,6 +1894,9 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                     id: `custom-calc-${Date.now()}`,
                     title: `Custom Household Trade (${formatUsd(safeCustomPrice)})`,
                     category: "Tools & Workshop",
+                    material: "Metal & Steel",
+                    itemType: "Tools & Equipment",
+                    imageUrl: "/src/assets/images/market_tool_chest_1795215571467.jpg",
                     condition: "Good",
                     price: safeCustomPrice,
                     sellerFamily: "Walkthrough Neighbor",
@@ -1788,7 +2244,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                       {liveVestingMath.vestingRootHex.slice(0, 32)}...
                     </div>
                     <div className="text-[11px] text-slate-400 mt-1">
-                      1 Human Owner = 1 Vote (Coins never vote).
+                      One Owner, One Vote (Coins never vote).
                     </div>
                   </div>
                 </div>
@@ -1974,7 +2430,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                   <Wallet className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">
-                  1. Dexpa Wallet Allocation
+                  1. DEXPA Wallet Allocation
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Tracks your 25% Discovery Market allocations building toward
@@ -2025,7 +2481,387 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
             </article>
           </div>
         </section>
-      </div>
+
+            {/* EXPLORE MORE MODAL BOTTOM CLOSE BAR */}
+            <div className="bg-[#081d38] text-white border-2 border-[#dfa62a] rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
+              <div className="text-center sm:text-left space-y-1">
+                <h3 className="font-serif text-lg sm:text-xl font-bold text-white">
+                  Ready to Browse or List an Item?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-200">
+                  Close this explanation window and return straight to the Discovery Marketplace ($0 listing fee).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowExploreModal(false)}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] text-sm font-extrabold shadow-sm transition-colors cursor-pointer shrink-0"
+              >
+                <span>Close &amp; Back to Marketplace</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* OVERLAY MODAL 0B: AMAZON-STYLE ITEM DETAIL WINDOW ON TOP           */}
+      {/* ================================================================== */}
+      {selectedDetailItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedDetailItem.title}
+          className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedDetailItem(null);
+            }
+          }}
+        >
+          {(() => {
+            const detailSplit = computeArticle11SplitCents(
+              Math.round(selectedDetailItem.price * 100)
+            );
+            return (
+              <div className="w-full max-w-4xl max-h-[92dvh] overflow-y-auto bg-white rounded-2xl border-2 border-[#dfa62a] shadow-2xl">
+                {/* Modal Top Bar */}
+                <div className="sticky top-0 z-10 bg-[#081d38] text-white px-5 py-3.5 flex items-center justify-between gap-4 border-b border-amber-400/40">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#fcd34d]">
+                    <Tag className="w-4 h-4" />
+                    <span>{selectedDetailItem.category}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-white">{selectedDetailItem.condition}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDetailItem(null)}
+                    aria-label="Close item details"
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Amazon-style 2-column Photo + Full Description Body */}
+                <div className="p-6 sm:p-7 grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
+                  <div className="sm:col-span-6 space-y-3">
+                    <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs">
+                      <img
+                        src={selectedDetailItem.imageUrl}
+                        alt={selectedDetailItem.title}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            "/src/assets/images/online_discovery_marketplace_1795199437252.jpg";
+                        }}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">Material</div>
+                        <div className="font-bold text-slate-900 mt-0.5">
+                          {selectedDetailItem.material}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">
+                          Item Type
+                        </div>
+                        <div className="font-bold text-slate-900 mt-0.5">
+                          {selectedDetailItem.itemType}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">Seller</div>
+                        <div className="font-bold text-slate-900 mt-0.5">
+                          {selectedDetailItem.sellerFamily}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">
+                          Location
+                        </div>
+                        <div className="font-bold text-slate-900 mt-0.5">
+                          {selectedDetailItem.location}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-6 space-y-4">
+                    <div className="space-y-1.5">
+                      {selectedDetailItem.badge && (
+                        <span className="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                          {selectedDetailItem.badge}
+                        </span>
+                      )}
+                      <h2 className="font-serif text-2xl font-bold text-[#081d38] leading-snug">
+                        {selectedDetailItem.title}
+                      </h2>
+                      <div className="flex items-baseline gap-2.5 pt-1">
+                        <span className="text-3xl font-extrabold text-[#081d38] tabular-nums">
+                          {formatUsd(selectedDetailItem.price)}
+                        </span>
+                        <span className="text-xs font-bold text-emerald-700">
+                          $0 TDEX Platform Fee
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#fbfaf7] border border-slate-200 space-y-1.5">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Full Description
+                      </div>
+                      <p className="text-sm text-slate-800 leading-relaxed">
+                        {selectedDetailItem.description}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-[#081d38]">
+                        Locked 50 / 25 / 25 Split When Purchased
+                      </div>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-700">50% Immediate Cash to Seller:</span>
+                          <span className="font-bold text-emerald-700">
+                            {formatUsd(detailSplit.sellerCashUsd)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-700">25% Seller Property Wallet:</span>
+                          <span className="font-bold text-amber-800">
+                            {formatUsd(detailSplit.sellerEquityUsd)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-700">25% Buyer Property Cashback:</span>
+                          <span className="font-bold text-sky-800">
+                            {formatUsd(detailSplit.buyerEquityUsd)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delivery Method + Carrier Tracking (5-Business-Day Rule) */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-bold text-[#081d38] inline-flex items-center gap-1.5">
+                          <Truck className="w-4 h-4 text-[#b47d12]" />
+                          <span>Delivery Option: {formatDeliveryLabel(selectedDetailItem)}</span>
+                        </span>
+                        {selectedDetailItem.deliveryMethod === "flat_rate_shipping" && (
+                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold text-[10.5px]">
+                            100% Shipping Fee Goes to Seller
+                          </span>
+                        )}
+                      </div>
+                      {selectedDetailItem.deliveryMethod === "local_pickup" ? (
+                        <p className="text-[11.5px] text-slate-700 leading-relaxed">
+                          Meet in <strong>daylight at public locations</strong> (police Safe
+                          Exchange Zones, bank lobbies, or busy grocery lots—never alone inside
+                          private homes). <strong>Inspect the item BEFORE</strong> handing over
+                          your 4-digit Pickup Confirmation Code; once entered, pickup is final.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[11.5px] text-slate-700 leading-relaxed">
+                            Sellers must upload valid carrier tracking within{' '}
+                            <strong>5 business days</strong>.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Enter carrier tracking # (USPS / UPS / FedEx)"
+                              value={trackingDraft[selectedDetailItem.id] ?? ""}
+                              onChange={(e) =>
+                                setTrackingDraft((prev) => ({
+                                  ...prev,
+                                  [selectedDetailItem.id]: e.target.value,
+                                }))
+                              }
+                              className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const code = (trackingDraft[selectedDetailItem.id] || "").trim();
+                                if (!code) return;
+                                setSavedTrackingMap((prev) => ({
+                                  ...prev,
+                                  [selectedDetailItem.id]: code,
+                                }));
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-[#081d38] hover:bg-[#0f294d] text-[#fcd34d] text-xs font-bold cursor-pointer shrink-0"
+                            >
+                              Add Tracking
+                            </button>
+                          </div>
+                          {savedTrackingMap[selectedDetailItem.id] && (
+                            <div className="text-[11px] font-bold text-emerald-800">
+                              Tracking Logged for Columbo Audit: {savedTrackingMap[selectedDetailItem.id]}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Two-Way 1–5 Star Verified Rating System (Blind Simultaneous Reveal) + File a Dispute */}
+                    {(() => {
+                      const rState = getItemRatingState(selectedDetailItem.id);
+                      const revealed = rState.buyerSubmitted && rState.sellerSubmitted;
+                      return (
+                        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 text-xs space-y-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-bold text-[#081d38] inline-flex items-center gap-1.5">
+                              <Star className="w-4 h-4 text-[#b47d12]" />
+                              <span>Two-Way 1–5 Star Verified Rating (Blind Simultaneous Reveal)</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRatingStateMap((prev) => ({
+                                  ...prev,
+                                  [selectedDetailItem.id]: { ...rState, disputeFiled: true },
+                                }))
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-900 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Gavel className="w-3 h-3" />
+                              <span>File a Dispute</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-amber-950 leading-snug">
+                            Both ratings stay hidden until both buyer and seller submit—preventing
+                            revenge reviews. False reviews or trade issues can be appealed to the
+                            12-person Owner Review Jury via <strong>File a Dispute</strong>.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div className="p-2.5 rounded-lg bg-white border border-amber-200 space-y-1.5">
+                              <div className="font-bold text-[11px] text-slate-700">Buyer Rating of Seller:</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((starVal) => (
+                                  <button
+                                    key={starVal}
+                                    type="button"
+                                    onClick={() =>
+                                      setRatingStateMap((prev) => ({
+                                        ...prev,
+                                        [selectedDetailItem.id]: { ...rState, buyerStars: starVal },
+                                      }))
+                                    }
+                                    className="cursor-pointer"
+                                    aria-label={`Rate seller ${starVal} stars`}
+                                  >
+                                    <Star
+                                      className={`w-4 h-4 ${
+                                        starVal <= rState.buyerStars
+                                          ? "fill-[#dfa62a] text-[#b47d12]"
+                                          : "text-slate-300"
+                                      }`}
+                                    />
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setRatingStateMap((prev) => ({
+                                      ...prev,
+                                      [selectedDetailItem.id]: { ...rState, buyerSubmitted: true },
+                                    }))
+                                  }
+                                  className="ml-auto px-2 py-0.5 rounded bg-[#081d38] text-[#fcd34d] text-[10px] font-bold cursor-pointer"
+                                >
+                                  {rState.buyerSubmitted ? "Sealed" : "Seal"}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg bg-white border border-amber-200 space-y-1.5">
+                              <div className="font-bold text-[11px] text-slate-700">Seller Rating of Buyer:</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((starVal) => (
+                                  <button
+                                    key={starVal}
+                                    type="button"
+                                    onClick={() =>
+                                      setRatingStateMap((prev) => ({
+                                        ...prev,
+                                        [selectedDetailItem.id]: { ...rState, sellerStars: starVal },
+                                      }))
+                                    }
+                                    className="cursor-pointer"
+                                    aria-label={`Rate buyer ${starVal} stars`}
+                                  >
+                                    <Star
+                                      className={`w-4 h-4 ${
+                                        starVal <= rState.sellerStars
+                                          ? "fill-[#dfa62a] text-[#b47d12]"
+                                          : "text-slate-300"
+                                      }`}
+                                    />
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setRatingStateMap((prev) => ({
+                                      ...prev,
+                                      [selectedDetailItem.id]: { ...rState, sellerSubmitted: true },
+                                    }))
+                                  }
+                                  className="ml-auto px-2 py-0.5 rounded bg-[#081d38] text-[#fcd34d] text-[10px] font-bold cursor-pointer"
+                                >
+                                  {rState.sellerSubmitted ? "Sealed" : "Seal"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          {revealed && (
+                            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                              Simultaneous Reveal Unlocked — Buyer rated Seller {rState.buyerStars}/5 ★ · Seller rated Buyer {rState.sellerStars}/5 ★
+                            </div>
+                          )}
+                          {rState.disputeFiled && (
+                            <div className="text-[11px] font-bold text-red-900 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                              Dispute Ticket Logged — Routed to randomly drawn 12-person Owner Review Jury (Article 5.3) with Columbo tracking/code audit.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chosen = selectedDetailItem;
+                          setSelectedDetailItem(null);
+                          handleSimulateCheckout(chosen);
+                        }}
+                        className="flex-1 py-3 px-5 rounded-xl bg-[#081d38] hover:bg-[#0f294d] text-[#dfa62a] text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                      >
+                        <Receipt className="w-4 h-4" />
+                        <span>Buy / Simulate 50/25/25 Split</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDetailItem(null)}
+                        className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold transition-colors cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* MODAL 1: SIMULATE CHECKOUT & COOPERATIVE RECEIPT MODAL */}
       {activeItemForReceipt && (
@@ -2096,7 +2932,7 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                    <span>🏡 25% Seller Dexpa Property Wallet</span>
+                    <span>🏡 25% Seller DEXPA Property Wallet</span>
                   </div>
                   <div className="text-[11px] text-amber-800 leading-tight">
                     Credited toward shared commercial property ownership.
@@ -2123,11 +2959,28 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
               </div>
             </div>
 
-            {/* Constitutional Notice */}
-            <div className="p-3 rounded-xl bg-[#0F2749] text-white text-xs space-y-1">
-              <div className="font-semibold text-amber-300">Why this matters:</div>
-              <div className="text-slate-200 text-[11px] leading-relaxed">
-                Ordinary classifieds take your money for corporate ad revenue. The Discovery Market turns your transaction into real family wealth—building toward our cooperative $5M building where 30% of rent permanently rewards public school students.
+            {/* Safe Meetup, 4-Digit Pickup Code & Chargeback Protection Notice */}
+            <div className="p-3.5 rounded-xl bg-[#0F2749] text-white text-xs space-y-2">
+              <div>
+                <div className="font-semibold text-amber-300">
+                  Local Pickup Safety &amp; 4-Digit Code Rule:
+                </div>
+                <div className="text-slate-200 text-[11px] leading-relaxed">
+                  Meet in daylight at police Safe Exchange Zones, bank lobbies, or busy grocery lots
+                  (never inside private homes alone). Inspect the item BEFORE sharing your 4-digit
+                  Pickup Confirmation Code—once entered, the pickup is final.
+                </div>
+              </div>
+              <div className="border-t border-white/15 pt-2">
+                <div className="font-semibold text-amber-300">
+                  Article 5.3 Jury First &amp; Anti-Chargeback Rule:
+                </div>
+                <div className="text-slate-200 text-[11px] leading-relaxed">
+                  Disputes must go first to the 12-person Owner Review Jury. Filing an external
+                  PayPal/bank chargeback after delivery triggers Columbo tracking/4-digit pickup
+                  evidence submission, ledger reversal of unearned 25% credits, and permanent
+                  account suspension for fraudulent chargebacks.
+                </div>
               </div>
             </div>
 
@@ -2252,20 +3105,17 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    Category:
-                  </label>
+                  <label className="text-xs font-bold text-slate-700">Section:</label>
                   <select
                     value={newCategory}
-                    onChange={(e) =>
-                      setNewCategory(e.target.value as GarageItem["category"])
-                    }
+                    onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
                   >
-                    <option value="Tools & Workshop">Tools & Workshop</option>
-                    <option value="Science & Education">Science & Education</option>
-                    <option value="Music & Arts">Music & Arts</option>
-                    <option value="Bikes & Sports">Bikes & Sports</option>
+                    {CATEGORIES.filter((c) => c !== "All Sections").map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -2283,6 +3133,75 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                     onChange={(e) => setNewPrice(Number(e.target.value))}
                     className="w-full px-3 py-2 text-xs sm:text-sm font-bold bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Material:</label>
+                  <select
+                    value={newMaterial}
+                    onChange={(e) => setNewMaterial(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
+                  >
+                    {MATERIAL_FILTERS.filter((m) => m !== "All Materials").map((mat) => (
+                      <option key={mat} value={mat}>
+                        {mat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Item Type:</label>
+                  <select
+                    value={newItemType}
+                    onChange={(e) => setNewItemType(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
+                  >
+                    {ITEM_TYPE_FILTERS.filter((t) => t !== "All Item Types").map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Condition:</label>
+                  <select
+                    value={newCondition}
+                    onChange={(e) => setNewCondition(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
+                  >
+                    <option value="New">New</option>
+                    <option value="Like New">Like New</option>
+                    <option value="Excellent">Excellent</option>
+                    <option value="Very Good">Very Good</option>
+                    <option value="Good">Good</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 inline-flex items-center gap-1.5">
+                  <ImagePlus className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Item Photo (Optional — Upload from Device):</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileUpload}
+                    className="flex-1 text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#081d38] file:text-[#fcd34d] hover:file:bg-[#0f294d] cursor-pointer"
+                  />
+                  {newImageUrl && (
+                    <img
+                      src={newImageUrl}
+                      alt="Upload preview"
+                      className="w-12 h-12 rounded-lg object-cover border border-slate-300 shrink-0"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -2304,12 +3223,82 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                   Item Description:
                 </label>
                 <textarea
-                  rows={2}
-                  placeholder="Tell your neighbors about the condition, accessories, and why you're passing it forward..."
+                  rows={3}
+                  placeholder="Describe what you are selling, its material, condition, and what is included..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 rounded-xl border border-slate-300 focus:outline-none focus:border-[#0F2749]"
                 />
+              </div>
+
+              {/* 3-Option Delivery Selector (Local Pickup / Free Shipping / Flat-Rate Shipping) */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <div className="text-xs font-bold text-[#081d38] inline-flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-[#b47d12]" />
+                  <span>Delivery Option (Choose 1 of 3):</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  {[
+                    {
+                      id: "local_pickup",
+                      title: "1. Local Pickup Only",
+                      desc: "4-digit Pickup Confirmation Code",
+                    },
+                    {
+                      id: "free_shipping",
+                      title: "2. Free Shipping",
+                      desc: "5-business-day carrier tracking",
+                    },
+                    {
+                      id: "flat_rate_shipping",
+                      title: "3. Flat-Rate Shipping",
+                      desc: "100% shipping fee goes to seller",
+                    },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() =>
+                        setNewDeliveryMethod(
+                          opt.id as "local_pickup" | "free_shipping" | "flat_rate_shipping"
+                        )
+                      }
+                      className={`p-2.5 rounded-xl border-2 text-left transition-colors cursor-pointer ${
+                        newDeliveryMethod === opt.id
+                          ? "bg-[#081d38] text-white border-[#dfa62a]"
+                          : "bg-white text-slate-800 border-slate-200 hover:border-slate-400"
+                      }`}
+                    >
+                      <div className="font-bold text-[11px]">{opt.title}</div>
+                      <div
+                        className={`text-[10px] mt-0.5 ${
+                          newDeliveryMethod === opt.id ? "text-slate-300" : "text-slate-500"
+                        }`}
+                      >
+                        {opt.desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {newDeliveryMethod === "flat_rate_shipping" && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <label className="text-xs font-bold text-slate-700 shrink-0">
+                      Flat-Rate Shipping Fee ($ USD):
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={500}
+                      step={1}
+                      value={newShippingFeeUsd}
+                      onChange={(e) => setNewShippingFeeUsd(Number(e.target.value))}
+                      className="w-28 px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded-lg"
+                    />
+                    <span className="text-[11px] text-emerald-800 font-semibold">
+                      100% paid directly to seller (5-day tracking required)
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Live Preview of your Split */}
@@ -2334,13 +3323,57 @@ export const MarketplacePage: React.FC<DiscoveryMarketViewProps> = ({
                 </div>
               </div>
 
+              {/* Hard-Coded Prohibited Items & Recall Policy Checklist */}
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 space-y-2">
+                <div className="text-xs font-extrabold uppercase tracking-wide text-red-900">
+                  Restricted / Prohibited Categories &amp; Recall Policy (Hard-Coded Gate)
+                </div>
+                <p className="text-[11px] text-red-950 leading-relaxed">
+                  Strictly prohibited: <strong>recalled baby cribs or infant sleepers</strong>,{' '}
+                  <strong>car seats/boosters</strong>, <strong>prescription medications</strong>,{' '}
+                  <strong>weapons/firearms/knives</strong>, <strong>gift cards/cash vouchers</strong>,{' '}
+                  <strong>live animals</strong>, alcohol/tobacco/vapes, or stolen/counterfeit goods.
+                </p>
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                    acceptedSafetyPolicy
+                      ? "bg-emerald-50 border-emerald-500"
+                      : "bg-white border-red-300 hover:border-red-500"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={acceptedSafetyPolicy}
+                    onChange={(e) => {
+                      setAcceptedSafetyPolicy(e.target.checked);
+                      if (e.target.checked) setListingValidationError(null);
+                    }}
+                    className="w-6 h-6 mt-0.5 rounded accent-[#081d38] shrink-0 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-900 leading-snug">
+                    I confirm this item is legal, safe, not recalled, and contains zero prohibited
+                    items.
+                  </span>
+                </label>
+                {listingValidationError && (
+                  <div className="text-xs font-bold text-red-700">{listingValidationError}</div>
+                )}
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-[#0F2749] hover:bg-[#173663] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                disabled={!acceptedSafetyPolicy || isListingBusy}
+                className="w-full py-3 px-4 rounded-xl bg-[#0F2749] hover:bg-[#173663] disabled:opacity-45 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
                 <PackagePlus className="w-4 h-4 text-[#F3C969]" />
-                <span>Publish Item to Live Trade Board</span>
+                <span>
+                  {isListingBusy ? "Publishing Listing..." : "Publish Listing"}
+                </span>
               </button>
+              <p className="text-[10.5px] text-center text-slate-500 leading-snug">
+                Marketplace Disclaimer: TDEX does not inspect, own, or guarantee peer-to-peer items;
+                sellers are responsible for listing accuracy, safety, and legality.
+              </p>
             </form>
           </div>
         </div>

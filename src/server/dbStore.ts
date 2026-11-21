@@ -43,7 +43,10 @@ export interface PersistedLedgerBlock {
 export interface PersistedMarketplaceListing {
   id: string;
   title: string;
-  category: 'Science & Education' | 'Tools & Workshop' | 'Music & Arts' | 'Bikes & Sports';
+  category: string;
+  material?: string;
+  itemType?: string;
+  imageUrl?: string;
   price: number;
   location: string;
   sellerFamily: string;
@@ -52,6 +55,8 @@ export interface PersistedMarketplaceListing {
   condition: string;
   badge?: string;
   iconType: string;
+  deliveryMethod?: 'local_pickup' | 'free_shipping' | 'flat_rate_shipping';
+  shippingFeeUsd?: number;
   status: 'ACTIVE' | 'SOLD';
   createdAtUtc: string;
 }

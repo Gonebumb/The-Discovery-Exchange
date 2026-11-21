@@ -337,7 +337,7 @@ export const OpenChatRoomPage: React.FC<OpenChatRoomPageProps> = ({
             <div className="space-y-1">
               <div className="text-[11px] font-bold uppercase tracking-wider text-[#b47d12] inline-flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />
-                <span>1 Human Owner = 1 Vote (Article 4.1)</span>
+                <span>One Owner, One Vote (Article 4.1)</span>
               </div>
               <h2 className="font-serif text-lg font-bold text-[#081d38]">
                 Kitchen-Table Opinion Pulse

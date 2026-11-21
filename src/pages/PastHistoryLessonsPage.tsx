@@ -79,7 +79,7 @@ const CONSTITUTIONAL_PILLARS_V10 = [
 ];
 
 const CONTINUITY_PROTOCOL_12: string[] = [
-  'Read the Master Charter (Version 10.0 Unreviewed Draft) and Past History before changing governance or ledger code.',
+  'Read the Master Charter (Version 10.0 Unreviewed Draft) and History before changing governance or ledger code.',
   'Preserve 1 Verified Human = 1 Vote across every voting and arbitration workflow.',
   'Never permit debt, mortgages, or margin leverage inside any property silo.',
   'Enforce the 50/25/25 split on every marketplace settlement with 0% TDEX platform listing fee (processor, shipping & tax disclosed).',
@@ -314,7 +314,7 @@ export const PastHistoryLessonsPage: React.FC = () => {
 
   const buildCleanPlainText = () => {
     const lines: string[] = [
-      'THE DISCOVERY EXCHANGE — PAST HISTORY TO READ (MISTAKES NOT TO REPEAT)',
+      'THE DISCOVERY EXCHANGE — HISTORY TO READ (MISTAKES NOT TO REPEAT)',
       'Clean Consolidated & Deduplicated Record Across 4 Source PDFs (v1.8, G 7.5 r, AI Genesis Ledger v10.0, Complete History & A-Z v10.0)',
       'NOTE: Strictly separate from the Working Master Instructions Record & Universal AI Operating Laws.',
       '',
@@ -390,7 +390,7 @@ export const PastHistoryLessonsPage: React.FC = () => {
   const buildCleanJsonPayload = () =>
     JSON.stringify(
       {
-        documentTitle: 'The Discovery Exchange — Past History to Read (Consolidated & Deduplicated)',
+        documentTitle: 'The Discovery Exchange — History to Read (Consolidated & Deduplicated)',
         versionScope: 'Merged across v1.8, G 7.5 r, Ledger v10.0, Complete History & A-Z v10.0',
         integrityManifest: GENESIS_INTEGRITY_MANIFEST,
         sourceDocuments: SOURCE_DOCUMENTS,
@@ -479,7 +479,7 @@ export const PastHistoryLessonsPage: React.FC = () => {
         </div>
 
         <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white leading-tight">
-          Past History to Read &mdash; Mistakes Not to Repeat
+          History to Read &mdash; Mistakes Not to Repeat
         </h1>
 
         <p className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-3xl">

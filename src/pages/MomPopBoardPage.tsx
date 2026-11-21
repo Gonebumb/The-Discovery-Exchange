@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, FolderLock, Pause, Play, RefreshCw } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FolderLock,
+  Pause,
+  Play,
+  RefreshCw,
+  ShieldAlert,
+} from 'lucide-react';
 import { PrivateVaultPortal } from '../components/PrivateVaultPortal';
 
 interface RotatingBoardScene {
@@ -23,7 +33,7 @@ const ROTATING_BOARD_PAIRS: Array<{
     right: {
       src: '/src/assets/images/mom_pop_board_rot_2.jpg',
       alt: 'Union driver in baseball cap, grandmother, teacher, and small shop owner raising hands to vote cleanly together',
-      caption: 'Neighborhood Hall Vote · One Verified Owner = One Vote (No Suits, No Bosses)',
+      caption: 'Neighborhood Hall Vote · One Owner, One Vote (No Suits, No Bosses)',
     },
   },
   {
@@ -84,7 +94,7 @@ export const MomPopBoardPage: React.FC = () => {
             Discover The Discovery Exchange Through Its Rotating Owners
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
-            Regular working-class Moms &amp; Pops—not suits and ties—rotating staggered terms on the Owner Board (DEXPA / TDEX).
+            Regular working-class Moms &amp; Pops—not suits and ties—rotating staggered terms on the Mom &amp; Pop Board (DEXPA / TDEX).
           </p>
         </div>
 
@@ -221,6 +231,105 @@ export const MomPopBoardPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* OWNER BOARD POWER HANDOVER & 14-DAY STAGGERED TRANSITION PROTOCOL (ARTICLE 5.1 & ARTICLE 7) */}
+      <section className="bg-white border-2 border-[#dfa62a] rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#b47d12]">
+              <Clock className="w-4 h-4" />
+              <span>Master Charter Article 5.1 &amp; Article 7 &bull; 30-Person Owner Board</span>
+            </div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#081d38]">
+              Owner Board Power Handover &amp; 14-Day Staggered Transition Protocol
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-700 max-w-3xl leading-relaxed">
+              <strong>Zero Lame-Duck Abuse &amp; Zero Knowledge Loss:</strong> Only{' '}
+              <strong>10 of the 30 Board seats</strong> rotate on a staggered schedule while{' '}
+              <strong>20 continuing Board members</strong> remain in place at every transition—so
+              TDEX never experiences a power vacuum. Outgoing members follow a strict 14-day
+              handover schedule on the open ledger.
+            </p>
+          </div>
+          <span className="px-3 py-1.5 rounded-lg bg-[#081d38] text-[#fcd34d] text-xs font-mono font-bold shrink-0">
+            10 Rotating / 20 Continuing &bull; 14-Day Protocol
+          </span>
+        </div>
+
+        {/* 5-Stage 14-Day Staggered Transition Timeline */}
+        <div className="space-y-3">
+          {[
+            {
+              stage: 'Day 14 Before Rotation',
+              title: 'Freeze on Non-Emergency New Commitments',
+              detail:
+                'During the final 14 days of their term, outgoing Board members are forbidden from initiating new discretionary spending, launching new rule changes, or rushing last-minute vendor contracts. Only routine operational maintenance and already-scheduled escrow closings may proceed.',
+            },
+            {
+              stage: 'Day 10 Before Rotation',
+              title: 'Neutral Random Draw & Seat Assignment',
+              detail:
+                'The neutral cryptographic random draw selects the 10 incoming verified Owners (plus 5 alternates). Columbo, Pipito, and an Independent Human Witness sign off on the incoming roster directly on the open ledger.',
+            },
+            {
+              stage: 'Days 9 to 2 Before Rotation',
+              title: 'Mandatory Briefing & Open-Ledger Transition Dossier',
+              detail:
+                'Outgoing Board members deliver a complete Transition Dossier to the 10 incoming members (reviewed alongside the 20 continuing members), covering: (1) status of every active Property Silo acquisition, inspection, and seller-side escrow window; (2) maintenance reserve balances and property management reports for all closed buildings; and (3) National Discovery Awards cycle status and pending TDX- tickets. Because TDEX holds zero money and all documents live on the open ledger, outgoing members hold zero physical bank keys, passwords, or private accounts that could ever be withheld.',
+            },
+            {
+              stage: 'Day 1 Before Rotation',
+              title: 'Incoming Board Oath of Honor & Constitutional Compliance',
+              detail:
+                'Each incoming Board member digitally signs the Owner Board Oath of Honor & Constitutional Compliance directly on the open ledger.',
+            },
+            {
+              stage: 'Rotation Day (12:00 PM UTC)',
+              title: 'Automatic Credential Switch & Independent Witness Sign-Off',
+              detail:
+                'At the exact scheduled transition timestamp: outgoing members’ Board voting credentials automatically expire (reverting to standard verified Owner status); incoming members’ Board voting credentials automatically activate; Pipito verifies headcount remains exactly 30 verified human Owners; and an Independent Human Witness signs off on the completed transition entry on the open ledger.',
+            },
+          ].map((item, idx) => (
+            <div
+              key={item.stage}
+              className="p-4 rounded-xl bg-[#fbfaf7] border border-slate-200 flex items-start gap-3.5"
+            >
+              <span className="w-7 h-7 rounded-lg bg-[#081d38] text-[#fcd34d] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                {idx + 1}
+              </span>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-amber-100 text-[#9A6B0A] text-[11px] font-extrabold uppercase tracking-wide">
+                    {item.stage}
+                  </span>
+                  <h3 className="font-bold text-sm text-[#081d38]">{item.title}</h3>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">{item.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Anti-Sabotage & Non-Cooperation Rule */}
+        <div className="p-4 sm:p-5 rounded-xl bg-red-50 border-2 border-red-200 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-red-900">
+            <ShieldAlert className="w-4 h-4 text-red-700" />
+            <span>Anti-Sabotage &amp; Non-Cooperation Rule (Zero Withholding Allowed)</span>
+          </div>
+          <p className="text-xs sm:text-sm text-red-950 leading-relaxed">
+            If an outgoing Board member refuses to turn over transition notes or attempts to
+            obstruct incoming members during the 14-day handoff, the{' '}
+            <strong>20 continuing Board members and Columbo</strong> pull the records directly from
+            the immutable open ledger, and the non-cooperating member is flagged for a{' '}
+            <strong>12-person Owner Review Jury hearing</strong> (which can permanently bar them
+            from future governance).
+          </p>
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 pt-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Zero Bank Keys Held &bull; Automatic Timestamp Switch &bull; Immutable Open Ledger</span>
+          </div>
+        </div>
+      </section>
 
       {/* Closed Internal Vault & Audit Log (Custodian, Court & Board Only) */}
       <div className="bg-[#081d38] text-white border-2 border-[#dfa62a] rounded-2xl p-6 space-y-4">

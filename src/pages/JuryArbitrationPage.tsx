@@ -83,17 +83,17 @@ export const JuryArbitrationPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pt-1">
           <div className="md:col-span-7 space-y-3">
             <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight">
-              12-Person Owner Review Jury &amp; DILOS Accountability
+              Internal Arbitration Court &mdash; 12-Person Owner Review Jury
             </h1>
             <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
-              Disputes and rule audits operate under <strong>Article 5.3</strong> and <strong>Article 17</strong>: a <strong>12-person Owner Review Jury</strong> is drawn via an auditable random process with conflict-of-interest screening, mandatory recusal, and removal rules, dissolving immediately after publishing findings.
+              Disputes and rule audits operate under <strong>Article 5.3</strong> and <strong>Article 17</strong>: a <strong>12-person Owner Review Jury</strong> is drawn via an auditable random process with conflict-of-interest screening, mandatory recusal, and removal rules, dissolving immediately after publishing findings with full legal rights preserved.
             </p>
           </div>
           <div className="md:col-span-5">
             <div className="rounded-xl overflow-hidden border-2 border-[#dfa62a] bg-slate-950 aspect-[16/9]">
               <img
                 src="/src/assets/images/arbitration_board_hero_1794963227628.jpg"
-                alt="Internal Arbitration Board — 12-Person Owner Review Jury & Constitutional Fairness"
+                alt="Internal Arbitration Court — 12-Person Owner Review Jury & Constitutional Fairness"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />

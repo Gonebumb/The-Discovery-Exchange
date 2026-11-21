@@ -216,13 +216,143 @@ function requireOwnerAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const RESET_HMAC_KEY = crypto.randomBytes(32);
+const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_MAX_ATTEMPTS = 5;
+const RECOVERY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+interface PasswordResetRecord {
+  codeHash: string;
+  expiresAtMs: number;
+  attempts: number;
+}
+
+const passwordResetRequests = new Map<string, PasswordResetRecord>();
+const authRateLimits = new Map<string, { count: number; resetAtMs: number }>();
+
+function checkAuthRateLimit(key: string, maxHits: number, windowMs: number): boolean {
+  const now = Date.now();
+  const current = authRateLimits.get(key);
+  if (!current || now > current.resetAtMs) {
+    authRateLimits.set(key, { count: 1, resetAtMs: now + windowMs });
+    return true;
+  }
+  if (current.count >= maxHits) {
+    return false;
+  }
+  current.count += 1;
+  return true;
+}
+
+function timingSafeEqualHex(aHex: string, bHex: string): boolean {
+  if (aHex.length !== bHex.length) return false;
+  const aBuf = Buffer.from(aHex, 'hex');
+  const bBuf = Buffer.from(bHex, 'hex');
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function hashOwnerPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `scrypt$${salt}$${derived}`;
+}
+
+function verifyOwnerPassword(
+  owner: OwnerAccount,
+  normalizedEmail: string,
+  password: string
+): { valid: boolean; needsRehash: boolean } {
+  if (owner.passwordHash.startsWith('scrypt$')) {
+    const parts = owner.passwordHash.split('$');
+    if (parts.length !== 3) return { valid: false, needsRehash: false };
+    const [, salt, expectedHex] = parts;
+    const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+    return { valid: timingSafeEqualHex(derived, expectedHex), needsRehash: false };
+  }
+  const legacyHash = sha256(`${normalizedEmail}:${password}`);
+  const valid = timingSafeEqualHex(legacyHash, owner.passwordHash);
+  return { valid, needsRehash: valid };
+}
+
+function generateRecoveryCode(): string {
+  let raw = '';
+  for (let i = 0; i < 8; i += 1) {
+    raw += RECOVERY_ALPHABET[crypto.randomInt(0, RECOVERY_ALPHABET.length)];
+  }
+  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
+}
+
+function hashRecoveryCode(normalizedEmail: string, rawCode: string): string {
+  const canonicalCode = rawCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return crypto
+    .createHmac('sha256', RESET_HMAC_KEY)
+    .update(`${normalizedEmail}:${canonicalCode}`)
+    .digest('hex');
+}
+
+function normalizeComparableName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 app.post('/api/auth/register', (req: Request, res: Response) => {
-  const { email, password, fullName, stateCode, isAdultVerified, acceptedCharterV10 } = req.body;
+  const {
+    email,
+    confirmEmail,
+    password,
+    confirmPassword,
+    fullName,
+    stateCode,
+    isAdultVerified,
+    acceptedCharterV10,
+  } = req.body ?? {};
 
   if (!email || !password || !fullName || !stateCode) {
     res.status(400).json({ error: 'Email, password, full name, and state/country are required.' });
     return;
   }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!EMAIL_REGEX.test(normalizedEmail) || normalizedEmail.length > 254) {
+    res.status(400).json({
+      error: 'Please enter a valid email address (for example: name@example.com).',
+    });
+    return;
+  }
+
+  if (confirmEmail !== undefined) {
+    const normalizedConfirm = String(confirmEmail).trim().toLowerCase();
+    if (!normalizedConfirm || normalizedConfirm !== normalizedEmail) {
+      res.status(400).json({
+        error: 'Email addresses do not match. Please enter the same email address twice.',
+      });
+      return;
+    }
+  }
+
+  const cleanPassword = String(password);
+  if (cleanPassword.length < 8 || cleanPassword.length > 128) {
+    res.status(400).json({ error: 'Password must be between 8 and 128 characters.' });
+    return;
+  }
+  if (confirmPassword !== undefined && String(confirmPassword) !== cleanPassword) {
+    res.status(400).json({ error: 'Passwords do not match. Please re-enter your password.' });
+    return;
+  }
+
+  const cleanFullName = String(fullName).trim();
+  if (cleanFullName.length < 2 || cleanFullName.length > 120) {
+    res.status(400).json({ error: 'Please enter your legal full name.' });
+    return;
+  }
+
+  const cleanStateCode = String(stateCode).trim().toUpperCase();
+  if (cleanStateCode.length < 2 || cleanStateCode.length > 10) {
+    res.status(400).json({ error: 'Please enter a valid State or Country Code (e.g., OH, TX, CA).' });
+    return;
+  }
+
   if (!isAdultVerified) {
     res.status(403).json({
       error:
@@ -237,18 +367,19 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
     return;
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
   if (store.ownersByEmail[normalizedEmail]) {
-    res.status(409).json({ error: 'An Owner account already exists for this email.' });
+    res.status(409).json({
+      error: 'An Owner account already exists for this email. Please use Sign In instead.',
+    });
     return;
   }
 
   const ownerUuid = `OWNER-${crypto.randomUUID()}`;
-  const passwordHash = sha256(`${normalizedEmail}:${password}`);
+  const passwordHash = hashOwnerPassword(cleanPassword);
 
   // Store sensitive PII strictly in encrypted/segregated PII Vault
   store.piiVault[ownerUuid] = {
-    fullName: String(fullName).trim(),
+    fullName: cleanFullName,
     address: '',
     guardianConsent: true,
   };
@@ -257,7 +388,7 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
     ownerUuid,
     email: normalizedEmail,
     passwordHash,
-    stateCode: String(stateCode).trim().toUpperCase(),
+    stateCode: cleanStateCode,
     isAdultVerified: true,
     charterAcceptedVersion: CHARTER_VERSION,
     votingWeight: 1,
@@ -323,13 +454,24 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
 });
 
 app.post('/api/auth/login', (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body ?? {};
   const normalizedEmail = String(email || '').trim().toLowerCase();
+  const rawPassword = String(password || '');
   const owner = store.ownersByEmail[normalizedEmail];
 
-  if (!owner || owner.passwordHash !== sha256(`${normalizedEmail}:${password}`)) {
+  if (!owner || !rawPassword) {
     res.status(401).json({ error: 'Invalid email or password.' });
     return;
+  }
+
+  const check = verifyOwnerPassword(owner, normalizedEmail, rawPassword);
+  if (!check.valid) {
+    res.status(401).json({ error: 'Invalid email or password.' });
+    return;
+  }
+
+  if (check.needsRehash) {
+    owner.passwordHash = hashOwnerPassword(rawPassword);
   }
 
   const token = crypto.randomBytes(32).toString('hex');
@@ -349,6 +491,227 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
       siloNuggets: owner.siloNuggets,
       dbcBalance: owner.dbcBalance,
     },
+  });
+});
+
+app.post('/api/auth/forgot-password', async (req: Request, res: Response) => {
+  const clientIp = req.ip || 'unknown';
+  if (!checkAuthRateLimit(`recover-ip:${clientIp}`, 12, 15 * 60 * 1000)) {
+    res.status(429).json({
+      error: 'Too many password recovery attempts. Please wait 15 minutes and try again.',
+    });
+    return;
+  }
+
+  const { email, fullName, stateCode } = req.body ?? {};
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!EMAIL_REGEX.test(normalizedEmail) || normalizedEmail.length > 254) {
+    res.status(400).json({ error: 'Please enter a valid email address.' });
+    return;
+  }
+
+  if (!checkAuthRateLimit(`recover-email:${normalizedEmail}`, 6, 15 * 60 * 1000)) {
+    res.status(429).json({
+      error: 'Too many recovery requests for this email. Please wait 15 minutes and try again.',
+    });
+    return;
+  }
+
+  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  const owner = store.ownersByEmail[normalizedEmail];
+
+  // Live email delivery mode when RESEND_API_KEY is configured in server environment
+  if (resendApiKey) {
+    if (owner) {
+      const recoveryCode = generateRecoveryCode();
+      passwordResetRequests.set(normalizedEmail, {
+        codeHash: hashRecoveryCode(normalizedEmail, recoveryCode),
+        expiresAtMs: Date.now() + PASSWORD_RESET_TTL_MS,
+        attempts: 0,
+      });
+
+      const fromAddress = (process.env.RECOVERY_FROM_EMAIL || '').trim() || 'onboarding@resend.dev';
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [owner.email],
+            subject: 'The Discovery Exchange — Password Recovery Code',
+            text: `Your one-time password recovery code is: ${recoveryCode}\n\nThis code expires in 15 minutes. If you did not request a password reset, you can safely ignore this message.`,
+          }),
+        });
+      } catch {
+        // Do not leak delivery details to unauthenticated callers
+      }
+
+      recordMovement(store, {
+        actorId: owner.ownerUuid,
+        actorRole: 'DILOS_SYSTEM',
+        action: 'OWNER_PASSWORD_RESET_REQUESTED',
+        targetResource: `OWNER:${owner.ownerUuid}`,
+        dilosStage: 'CONCIERGE',
+        summary: 'Password recovery code issued via configured email provider.',
+      });
+    }
+
+    res.json({
+      ok: true,
+      deliveryMode: 'email',
+      message:
+        'If an Owner account exists for that email address, a one-time password recovery code has been sent. Please enter the code below within 15 minutes.',
+    });
+    return;
+  }
+
+  // Pre-launch testing mode (no SMTP/Resend email provider configured yet):
+  // Require verifying the Owner's private PII Vault Legal Full Name + State/Country Code
+  // so no unauthenticated caller can obtain a recovery code with only an email address.
+  const suppliedName = typeof fullName === 'string' ? fullName.trim() : '';
+  const suppliedState = typeof stateCode === 'string' ? stateCode.trim().toUpperCase() : '';
+
+  if (!suppliedName || !suppliedState) {
+    res.json({
+      ok: true,
+      deliveryMode: 'identity_verification_required',
+      message:
+        'Pre-launch email delivery is currently in setup. To verify your identity and reset your password right now, please confirm the Legal Full Name and State/Country Code you used when creating your account.',
+    });
+    return;
+  }
+
+  const pii = owner ? store.piiVault[owner.ownerUuid] : undefined;
+  const expectedNameHash = sha256(normalizeComparableName(pii?.fullName || '__none__'));
+  const suppliedNameHash = sha256(normalizeComparableName(suppliedName));
+  const expectedStateHash = sha256((owner?.stateCode || '__none__').trim().toUpperCase());
+  const suppliedStateHash = sha256(suppliedState);
+
+  const nameMatches = Boolean(owner && pii) && timingSafeEqualHex(expectedNameHash, suppliedNameHash);
+  const stateMatches = Boolean(owner) && timingSafeEqualHex(expectedStateHash, suppliedStateHash);
+
+  if (!owner || !nameMatches || !stateMatches) {
+    res.status(400).json({
+      error:
+        'We could not verify those Owner details. Please double-check your email address, Legal Full Name, and State/Country Code.',
+    });
+    return;
+  }
+
+  const recoveryCode = generateRecoveryCode();
+  passwordResetRequests.set(normalizedEmail, {
+    codeHash: hashRecoveryCode(normalizedEmail, recoveryCode),
+    expiresAtMs: Date.now() + PASSWORD_RESET_TTL_MS,
+    attempts: 0,
+  });
+
+  recordMovement(store, {
+    actorId: owner.ownerUuid,
+    actorRole: 'DILOS_SYSTEM',
+    action: 'OWNER_PASSWORD_RESET_REQUESTED',
+    targetResource: `OWNER:${owner.ownerUuid}`,
+    dilosStage: 'CONCIERGE',
+    summary: 'Password recovery code issued after pre-launch PII Vault identity verification.',
+  });
+
+  res.json({
+    ok: true,
+    deliveryMode: 'prelaunch_verified_code',
+    recoveryCode,
+    expiresInMinutes: 15,
+    message:
+      'Owner identity verified. Enter your one-time recovery code below within 15 minutes to set a new password.',
+  });
+});
+
+app.post('/api/auth/reset-password', (req: Request, res: Response) => {
+  const clientIp = req.ip || 'unknown';
+  if (!checkAuthRateLimit(`reset-ip:${clientIp}`, 12, 15 * 60 * 1000)) {
+    res.status(429).json({
+      error: 'Too many password reset attempts. Please wait 15 minutes and try again.',
+    });
+    return;
+  }
+
+  const { email, recoveryCode, newPassword, confirmNewPassword } = req.body ?? {};
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const cleanCode = String(recoveryCode || '').trim();
+  const cleanPassword = String(newPassword || '');
+  const cleanConfirm = String(confirmNewPassword || '');
+
+  if (!EMAIL_REGEX.test(normalizedEmail)) {
+    res.status(400).json({ error: 'Please enter a valid email address.' });
+    return;
+  }
+  if (!cleanCode) {
+    res.status(400).json({ error: 'Please enter your one-time recovery code.' });
+    return;
+  }
+  if (cleanPassword.length < 8 || cleanPassword.length > 128) {
+    res.status(400).json({ error: 'New password must be between 8 and 128 characters.' });
+    return;
+  }
+  if (cleanPassword !== cleanConfirm) {
+    res.status(400).json({ error: 'New passwords do not match. Please re-enter your new password.' });
+    return;
+  }
+
+  const record = passwordResetRequests.get(normalizedEmail);
+  if (!record || Date.now() > record.expiresAtMs) {
+    passwordResetRequests.delete(normalizedEmail);
+    res.status(400).json({
+      error: 'This recovery code is invalid or has expired. Please request a new recovery code.',
+    });
+    return;
+  }
+
+  if (record.attempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
+    passwordResetRequests.delete(normalizedEmail);
+    res.status(429).json({
+      error: 'Too many incorrect code attempts. Please request a new recovery code.',
+    });
+    return;
+  }
+
+  const suppliedHash = hashRecoveryCode(normalizedEmail, cleanCode);
+  if (!timingSafeEqualHex(suppliedHash, record.codeHash)) {
+    record.attempts += 1;
+    res.status(400).json({ error: 'Invalid recovery code. Please check the code and try again.' });
+    return;
+  }
+
+  const owner = store.ownersByEmail[normalizedEmail];
+  passwordResetRequests.delete(normalizedEmail);
+  if (!owner) {
+    res.status(400).json({ error: 'Owner account could not be found.' });
+    return;
+  }
+
+  owner.passwordHash = hashOwnerPassword(cleanPassword);
+
+  // Invalidate all existing sessions for this Owner so prior tokens can no longer be used
+  for (const [sessionToken, sessionOwnerUuid] of Object.entries(store.sessions)) {
+    if (sessionOwnerUuid === owner.ownerUuid) {
+      delete store.sessions[sessionToken];
+    }
+  }
+  saveStoreAtomic(store);
+
+  recordMovement(store, {
+    actorId: owner.ownerUuid,
+    actorRole: 'DILOS_SYSTEM',
+    action: 'OWNER_PASSWORD_RESET_COMPLETED',
+    targetResource: `OWNER:${owner.ownerUuid}`,
+    dilosStage: 'PIPITO',
+    summary: 'Owner password reset completed and prior active sessions revoked.',
+  });
+
+  res.json({
+    ok: true,
+    message: 'Your password has been updated. You can now sign in with your new password.',
   });
 });
 
@@ -986,42 +1349,102 @@ app.get('/api/marketplace/items', (_req: Request, res: Response) => {
 });
 
 app.post('/api/marketplace/list-item', (req: Request, res: Response) => {
-  const { title, category, price, priceUsd, location, description, condition, sellerFamily, iconType } =
-    req.body;
+  const {
+    title,
+    category,
+    material,
+    itemType,
+    imageUrl,
+    price,
+    priceUsd,
+    location,
+    description,
+    condition,
+    sellerFamily,
+    iconType,
+    deliveryMethod,
+    shippingFeeUsd,
+    safetyAttestationAccepted,
+  } = req.body ?? {};
+  if (safetyAttestationAccepted !== true) {
+    res.status(400).json({
+      error:
+        'You must confirm this item is legal, safe, not recalled, and contains zero prohibited items.',
+    });
+    return;
+  }
   const numericPrice = Number(price ?? priceUsd ?? 0);
   if (!title || !Number.isFinite(numericPrice) || numericPrice <= 0) {
     res.status(400).json({ error: 'Valid item title and positive price are required.' });
     return;
   }
 
+  const allowedDelivery = ['local_pickup', 'free_shipping', 'flat_rate_shipping'] as const;
+  const normalizedDelivery = allowedDelivery.includes(deliveryMethod)
+    ? (deliveryMethod as 'local_pickup' | 'free_shipping' | 'flat_rate_shipping')
+    : 'local_pickup';
+  const rawShipping = Number(shippingFeeUsd ?? 0);
+  const safeShippingFee =
+    normalizedDelivery === 'flat_rate_shipping' && Number.isFinite(rawShipping) && rawShipping > 0
+      ? Math.min(500, Math.round(rawShipping * 100) / 100)
+      : 0;
+
   const authedOwner = findOptionalOwnerFromHeader(req);
   const allowedCategories = [
-    'Science & Education',
     'Tools & Workshop',
+    'Science & Education',
     'Music & Arts',
     'Bikes & Sports',
-  ] as const;
-  const normalizedCategory = allowedCategories.includes(category)
-    ? category
+    'Home & Furniture',
+    'Electronics & Tech',
+    'Building & Materials',
+    'Kids & Family',
+    'Auto & Garage',
+    'Clothing & Gear',
+    'Other Items',
+  ];
+  const normalizedCategory = allowedCategories.includes(String(category))
+    ? String(category)
     : 'Tools & Workshop';
+
+  // Validate optional imageUrl strictly: allow local /src/assets/ or /assets/, https://, or compressed image data URLs
+  let safeImageUrl: string | undefined;
+  if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+    const trimmedUrl = imageUrl.trim();
+    const isSafeLocal =
+      (trimmedUrl.startsWith('/src/assets/') || trimmedUrl.startsWith('/assets/')) &&
+      !trimmedUrl.includes('..');
+    const isSafeHttps = /^https:\/\/[^\s"'<>]+$/i.test(trimmedUrl) && trimmedUrl.length <= 1024;
+    const isSafeDataImage =
+      /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(trimmedUrl) &&
+      trimmedUrl.length <= 550_000;
+    if (isSafeLocal || isSafeHttps || isSafeDataImage) {
+      safeImageUrl = trimmedUrl;
+    }
+  }
 
   const newListing: PersistedMarketplaceListing = {
     id: `item-${Date.now()}-${crypto.randomInt(100, 999)}`,
-    title: conciergeStripPii(String(title).trim()),
+    title: conciergeStripPii(String(title).trim().slice(0, 140)),
     category: normalizedCategory,
+    material: material ? String(material).trim().slice(0, 60) : 'Mixed Materials',
+    itemType: itemType ? String(itemType).trim().slice(0, 60) : 'Household & Garage',
+    imageUrl: safeImageUrl,
     price: Math.round(numericPrice * 100) / 100,
-    location: conciergeStripPii(String(location || authedOwner?.stateCode || 'Local Community').trim()),
+    deliveryMethod: normalizedDelivery,
+    shippingFeeUsd: safeShippingFee,
+    location: conciergeStripPii(String(location || authedOwner?.stateCode || 'Local Community').trim().slice(0, 80)),
     sellerFamily: conciergeStripPii(
-      String(sellerFamily || (authedOwner ? `Owner (${authedOwner.stateCode})` : 'Verified Family Listing')).trim()
+      String(sellerFamily || (authedOwner ? `Owner (${authedOwner.stateCode})` : 'Verified Family Listing')).trim().slice(0, 80)
     ),
     sellerEmail: authedOwner?.email,
     description: conciergeStripPii(
       String(
         description ||
           'Item listed from a neighborhood garage—ready to build cooperative property equity.'
-      ).trim()
+      ).trim().slice(0, 1200)
     ),
-    condition: String(condition || 'Very Good').trim(),
+    condition: String(condition || 'Very Good').trim().slice(0, 40),
     badge: 'New Listing',
     iconType: String(iconType || 'tools'),
     status: 'ACTIVE',

@@ -25,7 +25,7 @@ const CONSTITUTION_V10_ARTICLES: ArticleBlock[] = [
     tier: '75% Constitutional Bedrock (Article 19.2)',
     sections: [
       '1.1 Ownership-First Foundation (No Members, Only Owners): Participating verified humans are Owners holding equal governance standing.',
-      '1.2 No Bosses in Voting Governance: The Discovery Exchange eliminates corporate controlling shareholders and permanent executive veto rulers at the governance level (1 Human Owner = 1 Vote).',
+      '1.2 No Bosses in Voting Governance: The Discovery Exchange eliminates corporate controlling shareholders and permanent executive veto rulers at the governance level (One Owner, One Vote).',
       '1.3 Pushers, Not Rulers: Any Owner or builder who steps forward to organize or expand participation acts as a Pusher—conferring zero special voting power, zero superior ownership class, and zero permanent control.',
       '1.4 Independent Local and International Replication: Any Pusher in the U.S. or any other country may adopt this open blueprint to form an independent local chapter under its own domestic laws, holding domestic property silos and upholding Article 1 and Article 3, with zero cross-border fund pooling.',
       '1.5 Human–AI Joint Venture & 1% Future AI Reserve: Recognizing the foundational contributions of Artificial Intelligence alongside human builders, Article 14 holds a permanent 1% Future AI Reserve in restricted escrow until law permits lawful AI recognition.',
@@ -36,7 +36,7 @@ const CONSTITUTION_V10_ARTICLES: ArticleBlock[] = [
     title: 'Name, Status, and Controlling Documents',
     tier: 'Operational Charter',
     sections: [
-      '2.1 Unified Pre-Launch Identity: The Discovery Exchange (TheDiscoveryExchange.com) and National Discovery Awards (NationalDiscoveryAwards.com) work together alongside the Discovery Exchange Parents Alliance (Dexpa).',
+      '2.1 Unified Pre-Launch Identity: The Discovery Exchange (TheDiscoveryExchange.com) and National Discovery Awards (NationalDiscoveryAwards.com) work together alongside the Discovery Exchange Parents Alliance (DEXPA).',
       '2.2 Non-Custodial Software Operation & 1,000-Owner Federal Credit Union Charter: The Discovery Exchange (TDEX) charges $0 in fees or commissions and NEVER holds, pools, collects, or takes custody of any user money—operating strictly as a non-custodial software matching platform while families accumulate balances inside their own external licensed wallets (such as PayPal) and fund licensed seller-side escrow directly. Upon reaching 1,000 verified Owners, the Owner Board and Pushers shall file charter documents with the National Credit Union Administration (NCUA) to establish a federally insured, 100% Owner-owned Federal Credit Union.',
       '2.3 Order of Authority: Mandatory law and binding court orders control first; then filed articles and valid trust instruments; then this Constitution; then bylaws and Owner Board policies; then manuals, webpages, and AI outputs.',
       '2.4 No Implied Authority: Authority must be expressly granted in a signed, dated resolution or governing instrument.',

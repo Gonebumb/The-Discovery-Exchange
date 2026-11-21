@@ -1105,7 +1105,7 @@ Show grades 7–12 public school students and educators how everyday curiosity c
 Question the student asked: ${project.coreQuestion}
 How it works: ${project.scientificPrinciple}
 Garage parts used ($${project.totalBomUsd} total): ${bomSummary}.
-Show parents, teachers, principals, and kids how 30% of Dexpa property rent supports student inventors across America.`;
+Show parents, teachers, principals, and kids how 30% of DEXPA property rent supports student inventors across America.`;
     if (onDraftScienceCampaign) {
       onDraftScienceCampaign(brief);
     } else if (typeof navigator !== "undefined" && navigator.clipboard) {

@@ -49,13 +49,13 @@ export const ParentsAllianceDexpaPage: React.FC = () => {
       <div
         role="region"
         aria-label="Open Project Non-Custodial Notice"
-        className="tdex-prelaunch-banner w-full bg-[#061529] text-white border-2 border-[#dfa62a] rounded-xl px-4 sm:px-6 py-3 text-center text-xs sm:text-[13px] leading-snug shadow-xs"
+        className="tdex-prelaunch-banner w-full bg-white text-[#9A6B0A] border-2 border-[#dfa62a] rounded-xl px-4 sm:px-6 py-3 text-center text-xs sm:text-[13px] leading-snug shadow-xs"
       >
-        <div className="font-bold text-[#fcd34d] uppercase tracking-wide mb-0.5">
-          OPEN PROJECT UNDER ACTIVE REVIEW &amp; BUILD — ZERO MONEY HANDLING BY TDEX
+        <div className="font-bold text-[#B47D12] uppercase tracking-wide mb-0.5">
+          TDEX is Building Something New.
         </div>
-        <div>
-          The Discovery Exchange (TDEX) <strong>NEVER</strong> holds, pools, collects, or touches any money. Families can begin setting up and building their own segregated property-accumulation balances inside their own licensed payment processor wallets (such as PayPal or an authorized financial partner) right away. When TDEX matches a debt-free property to buyers, TDEX opens a licensed third-party escrow directly on the seller’s side and gives buyers a set window to fund that seller-side escrow straight from their own regulated wallets.
+        <div className="font-semibold text-[#9A6B0A]">
+          Your money always stays in your accounts. The Discovery Exchange (TDEX) never holds or collects your funds. Instead, you save up for a home in your own PayPal or personal account. When TDEX finds the property that’s a match, you send your funds straight to a licensed escrow company to close the deal safely.
         </div>
       </div>
 
