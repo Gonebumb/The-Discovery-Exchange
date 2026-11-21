@@ -131,16 +131,11 @@ export const HowToPlayWalkthroughModal: React.FC<HowToPlayWalkthroughModalProps>
     const existing = blobUrlCacheRef.current.get(key);
     if (existing) return existing;
 
-    const resp = await fetch(`/api/walkthrough-voice/${sceneId}?voice=${encodeURIComponent(voice)}`);
+    const resp = await fetch(
+      `/api/walkthrough-voice/${sceneId}?voice=${encodeURIComponent(voice)}&v=2`
+    );
     if (!resp.ok) {
-      let errMsg = 'Studio voice audio temporarily unavailable.';
-      try {
-        const errJson = (await resp.json()) as { error?: string };
-        if (errJson.error) errMsg = errJson.error;
-      } catch {
-        // ignore non-json error body
-      }
-      throw new Error(errMsg);
+      throw new Error('STUDIO_AUDIO_UNAVAILABLE');
     }
 
     const blob = await resp.blob();
@@ -213,14 +208,10 @@ export const HowToPlayWalkthroughModal: React.FC<HowToPlayWalkthroughModalProps>
         if (activeScene.id < SCENES.length) {
           void fetchSceneAudioUrl(activeScene.id + 1, selectedVoice).catch(() => {});
         }
-      } catch (err) {
+      } catch {
         if (currentReqId !== requestCounterRef.current) return;
         setAudioLoading(false);
-        setAudioNotice(
-          err instanceof Error
-            ? err.message
-            : 'Click Resume or Voice Narration ON to start studio audio.'
-        );
+        setAudioNotice('Click Resume or toggle Studio Voice ON to start narration.');
       }
     })();
   }, [activeScene.id, selectedVoice, voiceEnabled, isPlaying, fetchSceneAudioUrl, stopAudio]);
@@ -362,7 +353,7 @@ export const HowToPlayWalkthroughModal: React.FC<HowToPlayWalkthroughModalProps>
         </div>
 
         {/* Animated Stage Viewport */}
-        <div className="relative bg-gradient-to-br from-[#0b2447] via-[#0e2f5c] to-[#081d38] px-5 sm:px-8 py-6 min-h-[300px] sm:min-h-[330px] flex flex-col justify-between gap-4 border-b border-white/10">
+        <div className="relative bg-gradient-to-br from-[#0b2447] via-[#0e2f5c] to-[#081d38] px-5 sm:px-7 py-4 min-h-[235px] sm:min-h-[255px] flex flex-col justify-between gap-3 border-b border-white/10">
           {/* Scene Title Pill */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dfa62a]/20 border border-[#dfa62a] text-[#fcd34d] text-xs font-extrabold">
@@ -713,8 +704,8 @@ export const HowToPlayWalkthroughModal: React.FC<HowToPlayWalkthroughModalProps>
         </div>
 
         {/* Live Captions Box */}
-        <div className="px-6 py-4 bg-[#06152a] border-b border-white/10">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <div className="px-5 sm:px-6 py-3 bg-[#06152a] border-b border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-0.5">
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#fcd34d]">
               Studio Narration &amp; Captions ({activeScene.badge})
             </div>
@@ -722,13 +713,13 @@ export const HowToPlayWalkthroughModal: React.FC<HowToPlayWalkthroughModalProps>
               <div className="text-[11px] font-semibold text-amber-300">{audioNotice}</div>
             )}
           </div>
-          <p className="text-sm sm:text-base font-semibold text-white leading-relaxed">
+          <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
             &ldquo;{activeScene.narration}&rdquo;
           </p>
         </div>
 
         {/* Video Progress Bar + Scene Jump Pills + Playback Controls */}
-        <div className="px-5 sm:px-6 py-4 bg-[#081d38] space-y-3.5">
+        <div className="px-5 sm:px-6 py-3 bg-[#081d38] space-y-2.5">
           {/* Interactive 60-Second Timeline Bar */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 tabular-nums">

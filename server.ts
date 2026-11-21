@@ -2335,6 +2335,7 @@ function getGeminiClient(): GoogleGenAI | null {
   if (!apiKey) return null;
   return new GoogleGenAI({
     apiKey,
+    apiVersion: 'v1beta',
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
@@ -2358,31 +2359,48 @@ async function generateWalkthroughWav(sceneId: number, voiceName: string): Promi
 
   const scriptText = WALKTHROUGH_SCENE_SCRIPTS[sceneId];
   const pending = (async () => {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash-lite-tts',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: scriptText,
-              speechMetadata: {
-                style:
-                  'Warm, natural, upbeat human host — friendly, conversational, crisp studio broadcast voice',
-              },
+    const requestAudio = async (includeSpeechMetadata: boolean) =>
+      ai.models.generateContent({
+        model: 'gemini-3.8-flash-lite-tts',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              includeSpeechMetadata
+                ? {
+                    text: scriptText,
+                    speechMetadata: {
+                      style:
+                        'Warm, natural, upbeat human host — friendly, conversational, crisp studio broadcast voice',
+                    },
+                  }
+                : {
+                    text: `Read warmly like a friendly, natural human studio host: ${scriptText}`,
+                  },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
             },
-          ],
-        },
-      ],
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName },
           },
         },
-      },
-    });
+      });
+
+    let response;
+    try {
+      response = await requestAudio(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('speechMetadata')) {
+        response = await requestAudio(false);
+      } else {
+        throw err;
+      }
+    }
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Audio) {
