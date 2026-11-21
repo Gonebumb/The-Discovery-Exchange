@@ -9,12 +9,14 @@ import {
   GraduationCap,
   Maximize2,
   Minimize2,
+  Play,
   RefreshCw,
   ShieldCheck,
   Sparkles,
   Trophy,
   Users,
 } from 'lucide-react';
+import { HowToPlayWalkthroughModal } from './HowToPlayWalkthroughModal';
 
 interface TradeCard {
   id: string;
@@ -196,6 +198,7 @@ type GameTab = 'play' | 'daily' | 'leaderboard';
 export const BuildTheBlockGame: React.FC = () => {
   const [activeTab, setActiveTab] = useState<GameTab>('play');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
 
   // Core Gameplay Loop State (Starts with $100 Practice Funds + $0 Practice Property Balance)
   const [practiceFundsUsd, setPracticeFundsUsd] = useState<number>(100);
@@ -500,42 +503,64 @@ export const BuildTheBlockGame: React.FC = () => {
               </>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowHowToPlay(true)}
+            className="px-3.5 py-2 rounded-xl bg-[#dfa62a] hover:bg-[#eab308] text-[#081d38] border border-amber-200 shadow-sm text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+            aria-label="Watch 60-Sec How to Play"
+          >
+            <Play className="w-3.5 h-3.5 fill-[#081d38]" />
+            <span>Watch 60-Sec How to Play</span>
+          </button>
         </div>
       </div>
 
       {/* Live Practice Scoreboard Strip */}
       <div className="bg-[#fbfaf7] border-b border-slate-200 px-6 py-3.5 grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
         <div className="p-2.5 rounded-xl bg-white border border-emerald-200">
-          <div className="text-[10px] font-bold uppercase text-emerald-700">Practice Funds</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#1e293b]">
+            Practice Funds
+          </div>
           <div className="text-lg font-extrabold text-emerald-800 tabular-nums">
             ${practiceFundsUsd}
           </div>
         </div>
         <div className="p-2.5 rounded-xl bg-white border border-amber-300">
-          <div className="text-[10px] font-bold uppercase text-amber-800">Property Balance</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#1e293b]">
+            Property Balance
+          </div>
           <div className="text-lg font-extrabold text-[#9A6B0A] tabular-nums">
             ${practicePropertyUsd} / ${SILO_GOAL_USD}
           </div>
         </div>
         <div className="p-2.5 rounded-xl bg-white border border-sky-200">
-          <div className="text-[10px] font-bold uppercase text-sky-800">NDA Awards (30%)</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#1e293b]">
+            NDA Awards (30%)
+          </div>
           <div className="text-lg font-extrabold text-sky-900 tabular-nums">${schoolAwardsUsd}</div>
         </div>
         <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-          <div className="text-[10px] font-bold uppercase text-slate-500">Debt-Free Silos</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#1e293b]">
+            Debt-Free Silos
+          </div>
           <div className="text-lg font-extrabold text-[#081d38] tabular-nums">
             {buildingsClosed}
           </div>
         </div>
         <div className="p-2.5 rounded-xl bg-white border border-amber-200">
-          <div className="text-[10px] font-bold uppercase text-amber-800">Virtual DBC Badges</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#1e293b]">
+            Virtual DBC Badges
+          </div>
           <div className="text-lg font-extrabold text-[#b47d12] tabular-nums inline-flex items-center gap-1 justify-center">
             <Coins className="w-4 h-4" />
             <span>{dbcBadgesUnlocked}</span>
           </div>
         </div>
         <div className="p-2.5 rounded-xl bg-[#081d38] text-white">
-          <div className="text-[10px] font-bold uppercase text-[#fcd34d]">Practice Points</div>
+          <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#fcd34d]">
+            Practice Points
+          </div>
           <div className="text-lg font-extrabold text-white tabular-nums">
             {totalPracticeDiscoveryPoints}
           </div>
@@ -1031,21 +1056,33 @@ export const BuildTheBlockGame: React.FC = () => {
 
   if (isFullScreen) {
     return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="The Discovery Exchange Challenge Full Screen"
-        className="fixed inset-0 z-[110] bg-slate-950/85 backdrop-blur-xs overflow-y-auto p-3 sm:p-6"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setIsFullScreen(false);
-          }
-        }}
-      >
-        {gameContent}
-      </div>
+      <>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="The Discovery Exchange Challenge Full Screen"
+          className="fixed inset-0 z-[110] bg-slate-950/85 backdrop-blur-xs overflow-y-auto p-3 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsFullScreen(false);
+            }
+          }}
+        >
+          {gameContent}
+        </div>
+        {showHowToPlay && (
+          <HowToPlayWalkthroughModal onClose={() => setShowHowToPlay(false)} />
+        )}
+      </>
     );
   }
 
-  return gameContent;
+  return (
+    <>
+      {gameContent}
+      {showHowToPlay && (
+        <HowToPlayWalkthroughModal onClose={() => setShowHowToPlay(false)} />
+      )}
+    </>
+  );
 };

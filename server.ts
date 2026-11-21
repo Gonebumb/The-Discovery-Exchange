@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
+import { GoogleGenAI } from '@google/genai';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -2311,6 +2312,115 @@ app.post('/api/vault/handover', requireVaultSession, (req: Request, res: Respons
     res.json({ governanceState: store.governanceState });
   } catch (err) {
     res.status(400).json({ error: err instanceof Error ? err.message : 'Handover failed.' });
+  }
+});
+
+// ============================================================================
+// 11. STUDIO-QUALITY WALKTHROUGH VOICE NARRATION (GEMINI 3.8 FLASH LITE TTS)
+// ============================================================================
+const WALKTHROUGH_SCENE_SCRIPTS: Record<number, string> = {
+  1: 'Want to see how everyday household items turn into 100 percent debt-free apartment buildings—with zero banks and zero money ever held by TDEX? Here is how to play in 60 seconds.',
+  2: 'Step 1: Click List and Sell on any household item. Every sale splits 50, 25, 25—putting 50 percent immediate funds in your wallet and 25 percent straight into your Property Balance.',
+  3: 'Step 2: Once you have enough Practice Funds, click Buy plus 25 percent Prop to earn another 25 percent toward your building goal.',
+  4: 'Step 3: Reject bank mortgage traps, clear the DILOS math and zero-debt audit checks, and hit 1,000 dollars to close on Silo number 1—100 percent debt-free.',
+  5: 'Once your building closes, you unlock a Discovery Brick Coin badge and collect 70 percent of net rental income while 30 percent automatically funds public school teachers and working-class students.',
+};
+
+const ALLOWED_STUDIO_VOICES = new Set(['Zephyr', 'Puck', 'Kore', 'Charon']);
+const walkthroughAudioCache = new Map<string, Buffer>();
+const walkthroughAudioInFlight = new Map<string, Promise<Buffer>>();
+
+function getGeminiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
+}
+
+async function generateWalkthroughWav(sceneId: number, voiceName: string): Promise<Buffer> {
+  const cacheKey = `${voiceName}:${sceneId}`;
+  const cached = walkthroughAudioCache.get(cacheKey);
+  if (cached) return cached;
+
+  const existingPromise = walkthroughAudioInFlight.get(cacheKey);
+  if (existingPromise) return existingPromise;
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    throw new Error('Studio voice narration is unavailable (GEMINI_API_KEY not configured).');
+  }
+
+  const scriptText = WALKTHROUGH_SCENE_SCRIPTS[sceneId];
+  const pending = (async () => {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash-lite-tts',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: scriptText,
+              speechMetadata: {
+                style:
+                  'Warm, natural, upbeat human host — friendly, conversational, crisp studio broadcast voice',
+              },
+            },
+          ],
+        },
+      ],
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName },
+          },
+        },
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+      throw new Error('No audio returned from studio TTS model.');
+    }
+    const wavBuffer = Buffer.from(base64Audio, 'base64');
+    walkthroughAudioCache.set(cacheKey, wavBuffer);
+    return wavBuffer;
+  })();
+
+  walkthroughAudioInFlight.set(cacheKey, pending);
+  try {
+    return await pending;
+  } finally {
+    walkthroughAudioInFlight.delete(cacheKey);
+  }
+}
+
+app.get('/api/walkthrough-voice/:sceneId', async (req: Request, res: Response) => {
+  const sceneId = Number(req.params.sceneId);
+  if (!Number.isInteger(sceneId) || !WALKTHROUGH_SCENE_SCRIPTS[sceneId]) {
+    res.status(400).json({ error: 'Invalid walkthrough scene ID (expected 1-5).' });
+    return;
+  }
+
+  const requestedVoice = String(req.query.voice || 'Zephyr');
+  const voiceName = ALLOWED_STUDIO_VOICES.has(requestedVoice) ? requestedVoice : 'Zephyr';
+
+  try {
+    const wavBuffer = await generateWalkthroughWav(sceneId, voiceName);
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(wavBuffer);
+  } catch (err) {
+    console.error('Walkthrough TTS error:', err);
+    res.status(502).json({
+      error: err instanceof Error ? err.message : 'Unable to generate studio narration audio.',
+    });
   }
 });
 

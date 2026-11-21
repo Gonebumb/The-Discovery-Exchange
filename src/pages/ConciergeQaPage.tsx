@@ -1362,9 +1362,9 @@ export const MASTER_QA_150: QaEntry[] = [
   {
     number: 166,
     section: '15. Board Handover, School Representatives & Legal Policies (Q151–Q166)',
-    question: 'What is The Discovery Exchange Challenge in the top navigation bar?',
+    question: 'How does The Discovery Exchange Challenge (Build the Block) game work?',
     answer:
-      'The Discovery Exchange Challenge (Build the Block) is a 100% free-to-play interactive educational simulation available immediately in the top navigation bar with zero sign-up friction. Players start with $100 Practice Funds, trade household items using the 50/25/25 split, reject bank mortgage traps, clear the 3-step DILOS Audit Gate, and close a virtual debt-free building to experience 70/30 Family & NDA rental splits using Practice Points only (zero real funds, zero entry fees, and zero real Discovery Brick Coins).',
+      'The Discovery Exchange Challenge ("Play Free: Build Debt-Free Neighborhoods — Learn in 3 Minutes, Build for Hours") is a 100% free-to-play interactive educational simulation on its own dedicated page—open it via the green "🎮 Play: Build the Block [FREE]" button in the top navigation bar or the 2nd Hero Picture on the homepage with zero sign-up friction. You can click [▶ Watch 60-Sec How to Play] next to Full Screen for a 5-scene animated walkthrough with studio-quality human voiceover and captions. Players start with $100 Practice Funds, List & Sell or Buy (+25% Prop) household items using the 50/25/25 split, reject bank mortgage traps blocked by Pipito, clear the 3-step DILOS Audit Gate at $1,000 to close Debt-Free Silo #1, unlock a Virtual Discovery Brick Coin (DBC) badge and 70/30 Family & National Discovery Awards practice rent, then click [Keep Building: Unlock Silo #2] (and Silo #3, #4, etc.) for continuous multi-silo play, plus Daily Discovery Challenges (Article 3.3) and anonymous Classroom/City Leaderboards—using 100% free Practice Points only (zero real funds, zero entry fees, and zero real DBC).',
     citation: 'The Discovery Exchange Challenge & Article 3.3',
   },
 ];
